@@ -33,21 +33,21 @@ class WebRenderer(WebRendererBase):
 
     def render(self, root, pretty_print=True):
         self.root = root
-        r = root.renderOn(self)
+        result = root.renderOn(self)
         del self.root
-        return self.tostring(r, pretty_print=pretty_print)
+        return self.tostring(result, pretty_print=pretty_print)
 
     def composedRenderOn(E, target):
-        r = target.renderHTMLOn(E)
-        if r is None: 
+        result = target.renderHTMLOn(E)
+        if result is None: 
             raise RuntimeError("%s failed to return rendered output"%(target.__class__,))
 
-        r = target.renderHTMLAfterOn(E, r)
-        if r is None: 
+        result = target.renderHTMLAfterOn(E, result)
+        if result is None: 
             raise RuntimeError("%s failed to return rendered after output"%(target.__class__,))
 
-        r = E.renderDecoratedHTMLOn(target, r)
-        return r
+        result = E.renderDecoratedHTMLOn(target, result)
+        return result
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

@@ -10,29 +10,47 @@
 #~ Imports 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-from .component import WebComponent
+from collections import defaultdict
+from .component import WebComponentBase, WebComponent
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Definitions 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+class WebPageHeader(object):
+    def __init__(self):
+        self.parts = set()
+    def copy(self):
+        r = self.__class__()
+        r.parts = self.parts.copy()
+        return r
+
+    def add(self, name, **ns):
+        ns = tuple(sorted(ns.items()))
+        self.parts.add((name, ns))
+
+    def addLink(self, href, rel, type):
+        self.add('link', href=href, rel=rel, type=type)
+    link = addLink
+    def addStylesheet(self, href, rel='stylesheet'):
+        return self.addLink(href, rel, 'text/css')
+    stylesheet = addStylesheet
+
+    def asHTML(self, E):
+        head = E.E.head()
+        head.extend(E.E(k, **dict(ns)) for k,ns in self.parts)
+        return head
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 class WebPageComponent(WebComponent):
     def renderHTMLOn(self, E):
-        head = E.head()
-        head.extend(E.E(k, **ns) for k,ns in self.head)
-
+        E.header = self.header.copy()
         body = E.body()
         for p in self.parts:
             body.append(p.renderOn(E))
 
-        return E.html(head, body)
-
-    def addHead(self, name, **ns):
-        self.head.append((name, ns))
-    def addLink(self, href, rel, type):
-        self.addHead('link', href=href, rel=rel, type=type)
-    def addStylesheet(self, href):
-        return self.addLink(href, 'stylesheet', 'text/css')
+        return E.html(E.header.asHTML(E), body)
 
     def add(self, item):
         self.parts.append(item)
@@ -46,11 +64,12 @@ class WebPageComponent(WebComponent):
         return r
     parts = property(getParts)
 
-    _head = None
-    def getHead(self):
-        r = self._head
+    _header = None
+    def getHeader(self):
+        r = self._header
         if r is None:
-            self._head = r = []
+            r = WebPageHeader()
+            self._header = r
         return r
-    head = property(getHead)
+    header = property(getHeader)
 
