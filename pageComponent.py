@@ -36,21 +36,25 @@ class WebPageHeader(object):
         return self.addLink(href, rel, 'text/css')
     stylesheet = addStylesheet
 
-    def asHTML(self, E):
-        head = E.E.head()
-        head.extend(E.E(k, **dict(ns)) for k,ns in self.parts)
+    def asHTML(self, html):
+        head = html.head()
+        head.extend(html(k, **dict(ns)) for k,ns in self.parts)
         return head
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class WebPageComponent(WebComponent):
-    def renderHTMLOn(self, E):
-        E.header = self.header.copy()
-        body = E.body()
-        for p in self.parts:
-            body.append(p.renderOn(E))
+    def renderHTMLOn(self, rctx, html):
 
-        return E.html(E.header.asHTML(E), body)
+        rctx.header = self.header.copy()
+        body = html.body()
+        for p in self.parts:
+            body.append(p.renderOn(rctx))
+
+        # render the header after the body, in case 
+        # another component modified it in rctx
+        header = rctx.header.asHTML(html)
+        return html.html(header, body)
 
     def add(self, item):
         self.parts.append(item)

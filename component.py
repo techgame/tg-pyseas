@@ -15,26 +15,26 @@
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class WebComponentBase(object):
-    def renderOn(self, E):
-        return E.composedRenderOn(self)
+    def renderOn(self, rctx):
+        return rctx.composedRenderOn(self)
 
-    def renderHTMLOn(self, E):
+    def renderHTMLOn(self, rctx, html):
         raise NotImplementedError('Subclass Responsibility: %r' % (self,))
-    def renderHTMLAfterOn(self, E, r):
+    def renderHTMLAfterOn(self, rctx, html, r):
         return r
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class WebComponent(WebComponentBase):
-    def renderOn(self, E):
-        return E.composedRenderOn(self.target)
+    def renderOn(self, rctx):
+        return rctx.composedRenderOn(self.target)
 
-    def renderHTMLOn(self, E):
+    def renderHTMLOn(self, rctx, html):
         raise NotImplementedError('Subclass Responsibility: %r' % (self,))
-    def renderHTMLAfterOn(self, E, r):
+    def renderHTMLAfterOn(self, rctx, html, r):
         decorators = self._decorators or ()
         for deco in decorators:
-            r = deco.renderDecoratedHTMLOn(self, E, r)
+            r = deco.renderDecoratedHTMLOn(self, rctx, html, r)
         return r
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

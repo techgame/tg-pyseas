@@ -20,16 +20,11 @@ from .renderBase import WebRendererBase
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class WebRenderer(WebRendererBase):
-    E = lxml.html.builder.E
-    E.XML = etree.XML
+    html = lxml.html.builder.E
+    html.XML = etree.XML
+    html.HTML = etree.XML
 
-    def tostring(self, elem, *args, **kw):
-        return etree.tostring(elem, *args, **kw)
-
-    def __getattr__(self, key):
-        return getattr(self.E, key)
-
-    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    tostring = staticmethod(etree.tostring)
 
     def render(self, root, pretty_print=True):
         self.root = root
@@ -37,16 +32,16 @@ class WebRenderer(WebRendererBase):
         del self.root
         return self.tostring(result, pretty_print=pretty_print)
 
-    def composedRenderOn(E, target):
-        result = target.renderHTMLOn(E)
+    def composedRenderOn(self, target):
+        result = target.renderHTMLOn(self, self.html)
         if result is None: 
             raise RuntimeError("%s failed to return rendered output"%(target.__class__,))
 
-        result = target.renderHTMLAfterOn(E, result)
+        result = target.renderHTMLAfterOn(self, self.html, result)
         if result is None: 
             raise RuntimeError("%s failed to return rendered after output"%(target.__class__,))
 
-        result = E.renderDecoratedHTMLOn(target, result)
+        result = self.renderDecoratedHTMLOn(target, result)
         return result
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -59,12 +54,12 @@ class WebRenderer(WebRendererBase):
         return r
     decorators = property(getDecorators)
 
-    def renderDecoratedHTMLOn(self, target, r):
+    def renderDecoratedHTMLOn(self, target, result):
         decorators = self._decorators or ()
         for deco in decorators:
-            r = deco.renderDecoratedHTMLOn(target, self, r)
-        return r
+            result = deco.renderDecoratedHTMLOn(target, self, self.html, result)
+        return result
 
-    def renderHTMLAfterOn(self, E, r):
+    def renderHTMLAfterOn(self, html, r):
         return r
 
