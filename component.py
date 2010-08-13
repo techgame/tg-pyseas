@@ -15,33 +15,19 @@
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class WebComponentBase(object):
-    def render(self, context):
-        return WebRenderer(context).render(self)
     def renderOn(self, E):
-        return E.composedRender(self)
+        return E.composedRenderOn(self)
 
     def renderHTMLOn(self, E):
         raise NotImplementedError('Subclass Responsibility: %r' % (self,))
     def renderHTMLAfterOn(self, E, r):
         return r
 
-    def composedRenderOn(self, E):
-        r = self.renderHTMLOn(E)
-        if r is None: 
-            raise RuntimeError("%s failed to return rendered output"%(self.__class__,))
-
-        r = self.renderHTMLAfterOn(E, r)
-        if r is None: 
-            raise RuntimeError("%s failed to return rendered after output"%(self.__class__,))
-
-        r = E.renderDecoratedHTMLOn(self, r)
-        return r
-
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class WebComponent(WebComponentBase):
     def renderOn(self, E):
-        return self.target.composedRenderOn(E)
+        return E.composedRenderOn(self.target)
 
     def renderHTMLOn(self, E):
         raise NotImplementedError('Subclass Responsibility: %r' % (self,))

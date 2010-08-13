@@ -23,11 +23,13 @@ class WebRenderer(WebRendererBase):
     E = lxml.html.builder.E
     E.XML = etree.XML
 
-    context = None
-    def __init__(self, context=None, fmtUrl=None):
-        self.context = context
-        if fmtUrl is not None:
-            self.fmtUrl = fmtUrl
+    def tostring(self, elem, *args, **kw):
+        return etree.tostring(elem, *args, **kw)
+
+    def __getattr__(self, key):
+        return getattr(self.E, key)
+
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     def render(self, root, pretty_print=True):
         self.root = root
@@ -35,9 +37,34 @@ class WebRenderer(WebRendererBase):
         del self.root
         return self.tostring(r, pretty_print=pretty_print)
 
-    def tostring(self, elem, *args, **kw):
-        return etree.tostring(elem, *args, **kw)
+    def composedRenderOn(E, target):
+        r = target.renderHTMLOn(E)
+        if r is None: 
+            raise RuntimeError("%s failed to return rendered output"%(target.__class__,))
 
-    def __getattr__(self, key):
-        return getattr(self.E, key)
+        r = target.renderHTMLAfterOn(E, r)
+        if r is None: 
+            raise RuntimeError("%s failed to return rendered after output"%(target.__class__,))
+
+        r = E.renderDecoratedHTMLOn(target, r)
+        return r
+
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    _decorators = None
+    def getDecorators(self):
+        r = self._decorators
+        if r is None:
+            self._decorators = r = []
+        return r
+    decorators = property(getDecorators)
+
+    def renderDecoratedHTMLOn(self, target, r):
+        decorators = self._decorators or ()
+        for deco in decorators:
+            r = deco.renderDecoratedHTMLOn(target, self, r)
+        return r
+
+    def renderHTMLAfterOn(self, E, r):
+        return r
 

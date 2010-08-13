@@ -11,66 +11,67 @@
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 from collections import defaultdict
+from .utils import objectmethod
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Definitions 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-class WebRendererBase(object):
-    cbMap = defaultdict(dict)
-    context = None
-
-    def __init__(self, context=None, fmtUrl=None):
-        self.context = context
+class WebCallbackMap(object):
+    fmtUrl = '/cb/{0}?cid={1}'
+    def __init__(self, fmtUrl=None):
+        self.db = defaultdict(dict)
         if fmtUrl is not None:
             self.fmtUrl = fmtUrl
 
-    def render(self, root, pretty_print=True):
+    def addUrlEntry(self, rid, cid, callback, context=None):
+        self.db[rid][cid] = callback, context
+        url = self.fmtUrl.format(rid, cid)
+        return url
+    add = addUrlEntry
+
+    def find(self, rid, cid):
+        rid = int(rid); cid = int(cid)
+        return self.db[rid][cid]
+
+    def callback(self, rid, cid):
+        callback, context = self.find(rid, cid)
+        return callback(), context
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+class WebRendererBase(object):
+    context = None
+    cbMap = WebCallbackMap()
+
+    def __init__(self, context=None, cbMap=None):
+        self.context = context
+        if cbMap is not None:
+            self.cbMap = cbMap
+
+    def render(self, root, **kw):
+        raise NotImplementedError('Subclass Responsibility: %r' % (self,))
+
+    def composedRenderOn(self, target):
         raise NotImplementedError('Subclass Responsibility: %r' % (self,))
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    def urlCB(self, cb, context=None):
+    def urlCB(self, callback, context=None):
+        if not callable(callback):
+            raise ValueError("Expected a callable object")
+
         rid = abs(id(self.root))
-        if hasattr(cb, 'im_func'):
-            cid = hash((cb.im_func, cb.im_self))
-        else: cid = id(cb)
+        if hasattr(callback, 'im_func'):
+            cid = hash((callback.im_func, callback.im_self))
+        else: cid = id(callback)
         cid = abs(cid)
+
         if context is None:
             context = self.context
-        self.cbMap[rid][cid] = (cb, context)
-        return self.asUrlCB(rid, cid)
+        return self.cbMap.add(rid,cid, callback, context)
 
-    fmtUrl = '/cb/{0}/{1}'
-    def asUrlCB(self, rid, cid):
-        return self.fmtUrl.format(rid, cid)
-
-    @classmethod
-    def findCB(klass, rid, cid):
-        return klass.cbMap[rid][cid]
-
-    @classmethod
-    def callback(klass, rid, cid):
-        cb, context = klass.findCB(rid, cid)
-        cb()
-        return context
-
-    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-    _decorators = None
-    def getDecorators(self):
-        r = self._decorators
-        if r is None:
-            self._decorators = r = []
-        return r
-    decorators = property(getDecorators)
-
-    def renderDecoratedHTMLOn(self, target, r):
-        decorators = self._decorators or ()
-        for deco in decorators:
-            r = deco.renderDecoratedHTMLOn(target, self, r)
-        return r
-
-    def renderHTMLAfterOn(self, E, r):
-        return r
+    @objectmethod
+    def callback(meOrMyKind, rid, cid):
+        return meOrMyKind.cbMap.callback(rid, cid)
 
