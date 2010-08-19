@@ -32,7 +32,9 @@ class WebRenderer(WebRendererBase):
         del self.root
         return self.tostring(result, pretty_print=pretty_print)
 
-    def composedRenderOn(self, target):
+    def pageRenderOn(self, target):
+        return target.renderHTMLOn(self, self.html)
+    def componentRenderOn(self, target):
         result = target.renderHTMLOn(self, self.html)
         if result is None: 
             raise RuntimeError("%s failed to return rendered output"%(target.__class__,))

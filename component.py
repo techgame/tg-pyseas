@@ -15,11 +15,14 @@
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class WebComponentBase(object):
+    def isWebComponent(self):
+        return True
     def renderOn(self, rctx):
-        return rctx.composedRenderOn(self)
+        return rctx.componentRenderOn(self)
 
     def renderHTMLOn(self, rctx, html):
-        raise NotImplementedError('Subclass Responsibility: %r' % (self,))
+        # provide a reasonable default to aid debugging
+        return html.div(repr(self))
     def renderHTMLAfterOn(self, rctx, html, r):
         return r
 
@@ -27,10 +30,10 @@ class WebComponentBase(object):
 
 class WebComponent(WebComponentBase):
     def renderOn(self, rctx):
-        return rctx.composedRenderOn(self.target)
+        if self.target is not None:
+            return self.target.renderOn(rctx)
+        return rctx.componentRenderOn(self)
 
-    def renderHTMLOn(self, rctx, html):
-        raise NotImplementedError('Subclass Responsibility: %r' % (self,))
     def renderHTMLAfterOn(self, rctx, html, r):
         decorators = self._decorators or ()
         for deco in decorators:
@@ -39,31 +42,20 @@ class WebComponent(WebComponentBase):
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    _target = None
-    def getTarget(self, orSelf=True):
-        r = self._target
-        if r is None and orSelf:
-            r = self
-        return r
-    def setTarget(self, target):
-        self._target = target
-        if target is self:
-            del self._target
-    target = property(getTarget, setTarget)
+    def getTarget(self):
+        ts = self.targetStack
+        if ts: return ts[-1]
+    target = property(getTarget)
 
-    _targetStack = None
+    targetStack = None
     def pushTarget(self, target):
-        stack = self._targetStack
-        if stack is None:
-            self._targetStack = stack = []
-
-        stack.append(self._target)
-        self.target = target
+        ts = self.targetStack
+        if ts is None:
+            self.targetStack = ts = []
+        ts.append(target)
         return target
     def popTarget(self):
-        target = self._targetStack.pop()
-        self.target = target
-        return target
+        return self.targetStack.pop()
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -90,7 +82,9 @@ class WebComponent(WebComponentBase):
 
     answerTarget = None
     def answer(self, value=None):
-        return self.target.answerTarget(value)
+        if self.target is not None:
+            return self.target.answer(value)
+        else: self.answerTarget(value)
     def asCalledOn(self, answerTarget):
         self.answerTarget = answerTarget
         return self
