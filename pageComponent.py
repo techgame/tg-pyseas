@@ -14,12 +14,13 @@ from collections import defaultdict
 from .component import WebComponentBase
 from .listComponent import WebListPartsMixin
 
+from .htmlBrushContext import HtmlBrushContextApiMixin
+
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Page Component that adds header to the context
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class WebPageComponent(WebListPartsMixin, WebComponentBase):
-    title = None
     def __init__(self, title=None):
         if title is not None:
             self.title = title
@@ -27,19 +28,37 @@ class WebPageComponent(WebListPartsMixin, WebComponentBase):
     def renderOn(self, rctx):
         return rctx.renderPage(self)
 
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
     def renderHTMLOn(self, html):
-        html.pageHeader = self.pageHeader.copy()
+        pageHeader = self.pageHeader.copy()
         with html.html():
-            head = html.head()
+            head = pageHeader.startRenderHeader(html)
+
             with html.body():
                 self.renderPageBodyOn(html)
 
             # render the header after the body, in case 
-            # another component modified it in rctx
-            html.pageHeader.renderHTMLOnHead(html, head)
+            # another component modified it from html context
+            pageHeader.finishRenderHeader(html, head)
 
     def renderPageBodyOn(self, html):
         self.renderParts(html)
+
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    _title = "Page"
+    def getTitle(self):
+        ph = self._pageHeader
+        if ph is not None:
+            return ph.title
+        else: return self._title
+    def setTitle(self, title):
+        self._title = title
+        ph = self._pageHeader
+        if ph is not None:
+            ph.title = title
+    title = property(getTitle, setTitle)
 
     _pageHeader = None
     def getPageHeader(self):
@@ -55,64 +74,62 @@ class WebPageComponent(WebListPartsMixin, WebComponentBase):
 #~ Page Header
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-class WebPageHeader(object):
+class WebPageHeader(HtmlBrushContextApiMixin):
     title = None
-
     def __init__(self, title=None):
-        if title is not None:
-            self.title = title
-        self.links = set()
-        self._parts = []
+        bctx = self._initBrushContext(None)
+        self._parts = bctx.pushBrush(bctx.head())
+
+        self.title = title
+        self._references = set()
+
     def copy(self):
-        r = self.__class__()
-        r.title = self.title
-        r.links = self.links.copy()
-        r._parts = self._parts[:]
+        r = self.__class__(self.title)
+        r._references = self._references.copy()
+        self._parts.copyElementsTo(r._parts)
         return r
 
-    def add(self, key, content=None, **attrib):
-        if key == 'link':
-            raise ValueError("Use addLink to add header links")
-        if not isinstance(key, basestring):
-            raise ValueError("Key must be a string")
-        self._parts.append((key, content, attrib))
-    def addMeta(self, **attrib):
-        self._parts.append(('meta', None, attrib))
-    def addScript(self, content, **attrib):
-        attrib.setdefault('type', "text/javascript")
-        self._parts.append(('script', content or '', attrib))
-    def addStyle(self, content, **attrib):
-        self._parts.append(('style', content, attrib))
-    def addBase(self, href=None, target=None):
-        ns = {}
-        if href is not None:
-            ns['href'] = href
-        if target is not None:
-            ns['target'] = target
-        if not ns:
-            raise ValueError("Expected href or target parameter")
+    def hasReference(self, ref):
+        return ref in self._references
+    def addReference(self, ref):
+        allRefs = self._references
+        if ref not in allRefs:
+            allRefs.add(ref)
+            return True
+        else:
+            return False
 
-        self._parts.append(('base', None, ns))
+    def link(self, href, rel, type):
+        """Adds a link to the header if it has not already been added"""
+        if self.addReference(href):
+            return self['link'](
+               href=href, rel=rel, type=type)
 
-    def addLink(self, href, rel, type):
-        if href in self.links:
-            return
-        ns = dict(href=href, rel=rel, type=type)
-        self._parts.append(('link', None, ns))
-        self.links.add(href)
-    link = addLink
-    def addStylesheet(self, href, rel='stylesheet'):
-        return self.addLink(href, rel, 'text/css')
-    stylesheet = addStylesheet
+    def stylesheet(self, href, rel='stylesheet'):
+        """Links a stylesheet to the page header"""
+        return self.link(href, rel, 'text/css')
+    css = stylesheet
 
-    def renderHTMLOnHead(self, html, head):
+    def script(self, *args, **kw):
+        kw.setdefault('type', "text/javascript")
+        return self['script'](*args, **kw)
+
+    def javascript(self, src_url, **kw):
+        if self.addReference(src_url):
+            kw['src'] = src_url
+            kw.setdefault('type', "text/javascript")
+            return self['script']('', **kw)
+    js = javascript
+
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    def startRenderHeader(self, html):
+        html.pageHeader = self
+        return html.head()
+
+    def finishRenderHeader(self, html, head):
         with head:
-            if self.title:
+            if self.title is not None:
                 html.title(self.title)
-
-            for key, content, attrib in self._parts:
-                if content is not None:
-                    html(key, content, **attrib)
-                else:
-                    html(key, **attrib)
+            self._parts.copyElementsTo(head)
 

@@ -109,6 +109,7 @@ class HtmlBrushContext(HtmlBrushContextBase):
 class HtmlBrushContextApiMixin(object):
     def _initBrushContext(self, callback, tagBrushMap=None):
         self._brushCtx = HtmlBrushContext(callback, tagBrushMap)
+        return self._brushCtx
 
     def __getitem__(self, tag):
         return self._brushCtx.bindBrush(tag)

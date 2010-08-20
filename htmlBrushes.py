@@ -11,6 +11,7 @@
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 import weakref
+import functools
 
 from lxml import etree
 from lxml.html import fragments_fromstring
@@ -74,14 +75,15 @@ class HtmlAttrs(object):
 
 class HtmlBaseBrush(object):
     def __init__(self, bctx, tag, *args, **kw):
-        self.tag = tag
         self._bctx = bctx
+        self.tag = tag
         self.initBase()
         self.initBrush(args, kw)
-        bctx.onBrushCreated(self)
+        if bctx is not None:
+            bctx.onBrushCreated(self)
 
     def new(self, *args, **kw):
-        return self.__class__(self.tag, self._bctx, *args, **kw)
+        return self.__class__(None, self.tag, *args, **kw)
     def copy(self):
         raise NotImplementedError("Copy not implemented for %s"%(self.__class__.__name__,))
 
@@ -158,15 +160,22 @@ class HtmlListBaseBrush(HtmlBaseBrush):
             if e is not None:
                 elem.append(e)
 
-    def moveElements(self, parent):
+    def copyElementsTo(self, target):
+        if etree.iselement(target):
+            for e in self.elements:
+                e.asElementTree(target)
+        else:
+            target.extend(e.copy() for e in self.elements)
+        return target
+    def moveElementsTo(self, target):
         elements = self.elements
         self._elements = []
-        if etree.iselement(parent):
+        if etree.iselement(target):
             for e in elements:
-                e.asElementTree(parent)
+                e.asElementTree(target)
         else:
-            parent.extend(elements)
-        return parent
+            target.extend(elements)
+        return target
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -298,7 +307,7 @@ class HtmlEntity(HtmlBaseBrush):
         parent.append(self.entity)
 
 class HtmlSpace(HtmlEntity):
-    entity = etree.Entity('space')
+    entity = etree.Entity('nbsp')
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Raw Brushes for HTML Source or Lxml elements
@@ -342,7 +351,7 @@ html5Tags = """
     tbody td textarea tfoot th thead time title tr ul var video wbr""".split()
 
 html5HeadTags = """
-    title meta link script style base""".split()
+    head title meta link noscript script style base""".split()
 
 html5ContentAttributeEvents = """
     onabort onerror onmousewheel onblur onfocus onpause oncanplay onformchange
