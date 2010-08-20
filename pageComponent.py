@@ -32,11 +32,14 @@ class WebPageComponent(WebListPartsMixin, WebComponentBase):
         with html.html():
             head = html.head()
             with html.body():
-                self.renderParts(html)
+                self.renderPageBodyOn(html)
 
             # render the header after the body, in case 
             # another component modified it in rctx
             html.pageHeader.renderHTMLOnHead(html, head)
+
+    def renderPageBodyOn(self, html):
+        self.renderParts(html)
 
     _pageHeader = None
     def getPageHeader(self):
@@ -76,6 +79,7 @@ class WebPageHeader(object):
     def addMeta(self, **attrib):
         self._parts.append(('meta', None, attrib))
     def addScript(self, content, **attrib):
+        attrib.setdefault('type', "text/javascript")
         self._parts.append(('script', content, attrib))
     def addStyle(self, content, **attrib):
         self._parts.append(('style', content, attrib))
