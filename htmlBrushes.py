@@ -235,8 +235,7 @@ class HtmlForm(HtmlTagBrush):
 
 class HtmlText(HtmlBaseBrush):
     def initBrush(self, args, kw):
-        text = ''.join(args)
-        self.text = text.format(**kw)
+        self.text = ''.join(args)
 
     def asElementTree(self, parent):
         if len(parent):
@@ -247,9 +246,10 @@ class HtmlText(HtmlBaseBrush):
 
 class HtmlSpace(HtmlText):
     def initBrush(self, args, kw):
-        if args or kw:
-            raise ValueError("HtmlSpace takes no parameters")
-        self.text = "&nbsp;"
+        pass
+
+    def asElementTree(self, parent):
+        parent.append(etree.Entity("nbsp"))
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -257,9 +257,7 @@ class HtmlRaw(HtmlListBaseBrush):
     parseFragments = staticmethod(fragments_fromstring)
 
     def initBrush(self, args, kw):
-        fragments = ''.join(args)
-        fragments = fragments.format(**kw)
-        self.fragments = self.parseFragments(fragments)
+        self.fragments = self.parseFragments(''.join(args))
 
     def asElementTree(self, parent):
         parent.extend(self.fragments)
