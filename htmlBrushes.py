@@ -227,6 +227,11 @@ class HtmlTagBrush(HtmlListBaseBrush, CallbackRegistrationMixin):
         self.attrs[key] = url
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+class HtmlForm(HtmlTagBrush):
+    attrs = HtmlTagBrush.attrs.branch(
+                method='POST', 
+                enctype="multipart/form-data")
+
 
 class HtmlText(HtmlBaseBrush):
     def initBrush(self, args, kw):
@@ -297,6 +302,7 @@ html5ContentAttributeEvents = """
 # add default tag -> HtmlTagBrush factories for valid tags
 htmlTagBrushMap = dict((tag, HtmlTagBrush) for tag in html5Tags)
 htmlTagBrushMap.update(
+    form = HtmlForm,
     text = HtmlText,
     space = HtmlSpace,
 
