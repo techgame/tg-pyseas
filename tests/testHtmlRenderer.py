@@ -10,10 +10,23 @@
 #~ Imports 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-from .component import WebComponent
-from .listComponent import WebListComponent
-from .pageComponent import WebPageComponent
+from pyseas import WebRenderContext
 
-from .renderContext import WebRenderContext
-from . import htmlRenderer
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~ Definitions 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+def testHtmlRenderer():
+    wrc = WebRenderContext(None)
+    html = wrc.createRenderer()
+
+    with html.div():
+        html.p('a paragraph using', html.strong('both'), 
+                'implicit and explicit', html.i('tags'))
+        html.a('link')
+
+    r = html.result()
+    assert r == (
+        '<div><p>a paragraph using<strong>both</strong>'
+        'implicit and explicit<i>tags</i></p><a>link</a></div>'), r
 

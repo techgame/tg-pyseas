@@ -10,6 +10,8 @@
 #~ Imports 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+from contextlib import contextmanager
+
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Definitions 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -18,27 +20,29 @@ class WebComponentBase(object):
     def isWebComponent(self):
         return True
     def renderOn(self, rctx):
-        return rctx.componentRenderOn(self)
+        return rctx.renderComponent(self)
 
-    def renderHTMLOn(self, rctx, html):
+    @contextmanager
+    def renderHTMLCtxOn(self, html, outer):
+        yield
+    def renderHTMLOn(self, html):
         # provide a reasonable default to aid debugging
-        return html.div(repr(self))
-    def renderHTMLAfterOn(self, rctx, html, r):
-        return r
+        html.div(repr(self))
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class WebComponent(WebComponentBase):
     def renderOn(self, rctx):
-        if self.target is not None:
-            return self.target.renderOn(rctx)
-        return rctx.componentRenderOn(self)
+        target = self.target
+        if target is not None:
+            return target.renderOn(rctx)
+        else:
+            return rctx.renderComponent(self)
 
-    def renderHTMLAfterOn(self, rctx, html, r):
-        decorators = self._decorators or ()
-        for deco in decorators:
-            r = deco.renderDecoratedHTMLOn(self, rctx, html, r)
-        return r
+    @contextmanager
+    def renderHTMLCtxOn(self, html, outer):
+        with html.renderNestedCtx(self, outer, self._decorators):
+            yield
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

@@ -17,14 +17,9 @@ from .component import WebComponentBase, WebComponent
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class WebPartsMixin(object):
-    def renderHTMLOn(self, rctx, html):
-        return self.renderPartsOn(html.div(), rctx)
-
-    def iterRenderParts(self, rctx):
-        return (p.renderOn(rctx) for p in self.parts)
-    def renderPartsOn(self, elem, rctx):
-        elem.extend(self.iterRenderParts(rctx))
-        return elem
+    def renderParts(self, html):
+        for p in self.parts:
+            html.render(p)
 
     _parts = None
     def getParts(self):
@@ -65,5 +60,6 @@ class WebListPartsMixin(WebPartsMixin):
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class WebListComponent(WebListPartsMixin, WebComponent):
-    pass
+    def renderHTMLOn(self, html):
+        self.renderParts(html)
 

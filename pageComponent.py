@@ -15,7 +15,41 @@ from .component import WebComponentBase
 from .listComponent import WebListPartsMixin
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#~ Definitions 
+#~ Page Component that adds header to the context
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+class WebPageComponent(WebListPartsMixin, WebComponentBase):
+    title = None
+    def __init__(self, title=None):
+        if title is not None:
+            self.title = title
+
+    def renderOn(self, rctx):
+        return rctx.renderPage(self)
+
+    def renderHTMLOn(self, html):
+        html.pageHeader = self.pageHeader.copy()
+        with html.html():
+            head = html.head()
+            with html.body():
+                self.renderParts(html)
+
+            # render the header after the body, in case 
+            # another component modified it in rctx
+            html.pageHeader.renderHTMLOnHead(html, head)
+
+    _pageHeader = None
+    def getPageHeader(self):
+        r = self._pageHeader
+        if r is None:
+            r = WebPageHeader(self.title)
+            self._pageHeader = r
+        return r
+    pageHeader = property(getPageHeader)
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~ Page Header
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class WebPageHeader(object):
@@ -36,6 +70,8 @@ class WebPageHeader(object):
     def add(self, key, content=None, **attrib):
         if key == 'link':
             raise ValueError("Use addLink to add header links")
+        if not isinstance(key, basestring):
+            raise ValueError("Key must be a string")
         self._parts.append((key, content, attrib))
     def addMeta(self, **attrib):
         self._parts.append(('meta', None, attrib))
@@ -65,48 +101,14 @@ class WebPageHeader(object):
         return self.addLink(href, rel, 'text/css')
     stylesheet = addStylesheet
 
-    def asHTML(self, html):
-        head = html.head()
-        add = head.append
-        if self.title:
-            add(html.title(self.title))
+    def renderHTMLOnHead(self, html, head):
+        with head:
+            if self.title:
+                html.title(self.title)
 
-        for key, content, attrib in self._parts:
-            if content is not None:
-                add(html(key, content, **attrib))
-            else:
-                add(html(key, **attrib))
-        return head
-
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#~ Page Component that adds header to the context
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-class WebPageComponent(WebListPartsMixin, WebComponentBase):
-    title = None
-    def __init__(self, title=None):
-        if title is not None:
-            self.title = title
-
-    def renderOn(self, rctx):
-        return rctx.pageRenderOn(self)
-
-    def renderHTMLOn(self, rctx, html):
-        rctx.header = self.header.copy()
-        body = html.body()
-        self.renderPartsOn(body, rctx)
-
-        # render the header after the body, in case 
-        # another component modified it in rctx
-        header = rctx.header.asHTML(html)
-        return html.html(header, body)
-
-    _header = None
-    def getHeader(self):
-        r = self._header
-        if r is None:
-            r = WebPageHeader(self.title)
-            self._header = r
-        return r
-    header = property(getHeader)
+            for key, content, attrib in self._parts:
+                if content is not None:
+                    html(key, content, **attrib)
+                else:
+                    html(key, **attrib)
 

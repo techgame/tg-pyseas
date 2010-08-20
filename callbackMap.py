@@ -10,6 +10,7 @@
 #~ Imports 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+import functools
 import urlparse
 import urllib
 
@@ -95,4 +96,22 @@ class WebCallbackMap(object):
 
         if kw: path += '?'+urllib.urlencode(kw)
         return urlparse.urljoin(self.url, path)
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~ Utility mixin
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+class CallbackRegistrationMixin(object):
+    #~ callback registry methods ~~~~~~~~~~~~~~~~~~~~~~~~
+
+    def bind(self, callback, *args, **kw):
+        return self.ctxBindEx(None, callback, args, kw)
+    def ctxBind(self, context, callback, *args, **kw):
+        return self.ctxBindEx(context, callback, args, kw)
+    def ctxBindEx(self, context, callback, args, kw):
+        if args or kw:
+            callback = functools.partial(callback, *args, **kw)
+        return self.callback(callback, context)
+    def callback(self, callback, context=None):
+        raise NotImplementedError('Subclass Responsibility: %r' % (self,))
 

@@ -16,8 +16,8 @@ import urllib
 
 import flask
 
-from .renderBase import WebCallbackMap
-from .renderElementMaker import WebRenderer
+from .callbackMap import WebCallbackMap
+from .renderContext import WebRenderContext
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Definitions 
@@ -25,7 +25,7 @@ from .renderElementMaker import WebRenderer
 
 class ComponentSession(object):
     WebCallbackMap = WebCallbackMap
-    WebRenderer = WebRenderer
+    WebRenderContext = WebRenderContext
     redirect = staticmethod(flask.redirect)
 
     def __init__(self, mgr):
@@ -49,8 +49,9 @@ class ComponentSession(object):
     __call__ = perform
 
     def bindRenderer(self, decorators=[]):
-        wr = self.WebRenderer(self.cbMap)
-        wr.decorators.extend(decorators)
+        wr = self.WebRenderContext(self.cbMap)
+        if decorators:
+            wr.decorators.extend(decorators)
         #from . import halos
         #wr.decorators.append(halos.Halo())
         return wr
