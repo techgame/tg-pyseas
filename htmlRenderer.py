@@ -28,21 +28,20 @@ with html.div():
 
 import itertools
 import contextlib
-from functools import partial
 
 from lxml import etree
 
 from .renderContext import BaseRenderer
-from .htmlBrushes import htmlTagBrushMap
+from .htmlBrushContext import HtmlBrushContextApiMixin
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Html Rendering brushes
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-class HtmlRenderer(BaseRenderer):
+class HtmlRenderer(BaseRenderer, HtmlBrushContextApiMixin):
     decorators = None
     def _init(self):
-        self._stack = []
+        self._initBrushContext(self.callback)
 
     #~ visitor concrete implementations ~~~~~~~~~~~~~~~~~ 
 
@@ -64,55 +63,10 @@ class HtmlRenderer(BaseRenderer):
         lst = [c.renderHTMLCtxTargetOn(self, target) for c in lst]
         return contextlib.nested(*lst)
 
-    #~ stack ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-    def topBrush(self):
-        stack = self._stack
-        if stack: return stack[-1]
-
-    def pushBrush(self, brush=None):
-        self._stack.append(brush)
-        return brush
-
-    def popBrush(self):
-        brush = self._stack.pop()
-        self._currentBrush = brush
-        return brush
-
-    _currentBrush = None
-    def onBrushCreated(self, brush):
-        tb = self.topBrush()
-        if tb is not None:
-            tb.addImplicitBrush(brush)
-        self._currentBrush = brush
-        return tb
-
-    #~ brushes ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-    tagBrushMap = htmlTagBrushMap
-    def bindBrush(self, tag):
-        brush = self.tagBrushMap.get(tag)
-        if brush is None:
-            raise LookupError("Brush %r not found"%(tag,), tag)
-        return partial(brush, self, tag)
-
-    def __call__(self, key, *args, **kw):
-        brush = self.bindBrush(key)
-        return brush(*args, **kw)
-    def __getattr__(self, key):
-        if not key.startswith('_'):
-            try:
-                return self.bindBrush(key)
-            except LookupError, err:
-                raise AttributeError(*err.args)
-
-        else: raise AttributeError(key)
+    #~ rendering results ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     def result(self, **kw):
-        last = self.topBrush()
-        if last is None:
-            last = self._currentBrush
-
+        last = self._brushCtx.resultBrush()
         return last.asXMLString(**kw)
 
     def handleRenderResult(self, r):

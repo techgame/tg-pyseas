@@ -15,8 +15,6 @@ import weakref
 from lxml import etree
 from lxml.html import fragments_fromstring
 
-from .callbackMap import CallbackRegistrationMixin
-
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ HTML Brush Attrs
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -69,21 +67,27 @@ class HtmlAttrs(object):
     def itervalues(self): return self.ns.itervalues()
     def iteritems(self): return self.ns.iteritems()
 
+
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ HTML Base Brush
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class HtmlBaseBrush(object):
-    def __init__(self, html, tag, *args, **kw):
+    def __init__(self, bctx, tag, *args, **kw):
         self.tag = tag
-        self._html_ = html
+        self._bctx = bctx
         self.initBase()
         self.initBrush(args, kw)
-        html.onBrushCreated(self)
+        bctx.onBrushCreated(self)
+
+    def new(self, *args, **kw):
+        return self.__class__(self.tag, self._bctx, *args, **kw)
+    def copy(self):
+        raise NotImplementedError("Copy not implemented for %s"%(self.__class__.__name__,))
 
     def isBrush(self):
         return True
-    def asBrush(self, html=None):
+    def asBrush(self, bctx=None):
         return self
 
     def initBase(self):
@@ -101,6 +105,9 @@ class HtmlBaseBrush(object):
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+    def __html__(self):
+        return self.asXMLString(pretty_print=True)
+
     def asXMLString(self, **kw):
         root = etree.Element('ROOT')
         self.asElementTree(root)
@@ -109,20 +116,27 @@ class HtmlBaseBrush(object):
     def asElementTree(self, parent):
         raise NotImplementedError('Subclass Responsibility: %r' % (self,))
 
+
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ HTML Tag Brush
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class HtmlListBaseBrush(HtmlBaseBrush):
+    attrs = HtmlAttrs()
+
     def initBase(self):
         super(HtmlListBaseBrush,self).initBase()
         self._elements = []
 
+    def copy(self):
+        """Deep copy of brush"""
+        return self.new(*(e.copy() for e in self._elements), **self.attrs)
+
     def __enter__(self):
-        self._html_.pushBrush(self)
+        self._bctx.pushBrush(self)
         return self
     def __exit__(self, excType, exc, tb):
-        assert self._html_.popBrush() is self
+        assert self._bctx.popBrush() is self
 
 
     def __len__(self):
@@ -167,8 +181,10 @@ class HtmlListBaseBrush(HtmlBaseBrush):
         self.attrs.update(attrs)
         return attrs
     def addItem(self, item):
+        if item is None: return
         adaptor = self.adaptorForItem(item)
-        item = adaptor(item, self._html_)
+        item = adaptor(item, self._bctx)
+        if item is None: return
         if isinstance(item, dict):
             return self.addAttrs(item)
         elif isinstance(item, list):
@@ -176,6 +192,7 @@ class HtmlListBaseBrush(HtmlBaseBrush):
         return self.addBrush(item)
 
     def add(self, item):
+        if item is None: return
         try: brush = item.asBrush()
         except AttributeError:
             return self.addItem(item)
@@ -189,10 +206,10 @@ class HtmlListBaseBrush(HtmlBaseBrush):
         return self
 
     adaptorMap = {
-        list: (lambda item,html: item),
-        dict: (lambda item,html: item),
-        str: (lambda item, html: html.text(item)),
-        unicode: (lambda item, html: html.text(item)),
+        list: (lambda item,bctx: item),
+        dict: (lambda item,bctx: item),
+        str: (lambda item,bctx: bctx.text(item)),
+        unicode: (lambda item,bctx: bctx.text(item)),
         }
     def adaptorForItem(self, item):
         try: return item.asBrush
@@ -203,7 +220,12 @@ class HtmlListBaseBrush(HtmlBaseBrush):
             entry = aMap.get(kind)
             if entry is not None:
                 return entry
+        print (item, type(item))
+        raise ValueError("No adpator for result: %r" %(item,) )
 
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~ Tag Brushes with sub-elements and callbacks
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 tagCallbackAttrMap = {
@@ -211,8 +233,8 @@ tagCallbackAttrMap = {
     'form': 'action',
 }
 
-class HtmlTagBrush(HtmlListBaseBrush, CallbackRegistrationMixin):
-    attrs = HtmlAttrs()
+class HtmlTagBrush(HtmlListBaseBrush):
+    attrs = HtmlListBaseBrush.attrs.copy()
 
     def initBrush(self, elems, kwattrs):
         attrs = self.attrs.copy()
@@ -222,10 +244,18 @@ class HtmlTagBrush(HtmlListBaseBrush, CallbackRegistrationMixin):
         if elems:
             self.extend(elems)
 
-    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    #~ callback binding ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+    def bind(self, callback, *args, **kw):
+        return self.ctxBindEx(None, callback, args, kw)
+    def ctxBind(self, context, callback, *args, **kw):
+        return self.ctxBindEx(context, callback, args, kw)
+    def ctxBindEx(self, context, callback, args, kw):
+        if args or kw:
+            callback = functools.partial(callback, *args, **kw)
+        return self.callback(callback, context)
     def callback(self, callback, context=None):
-        url = self._html_.callback(callback, context)
+        url = self._bctx.callback(callback, context)
         self.setCallbackUrl(url)
         return self
 
@@ -235,15 +265,23 @@ class HtmlTagBrush(HtmlListBaseBrush, CallbackRegistrationMixin):
         self.attrs[key] = url
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~ Subclasses with useful defaults
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 class HtmlForm(HtmlTagBrush):
     attrs = HtmlTagBrush.attrs.branch(
-                method='POST', 
-                enctype="multipart/form-data")
+        method='POST', enctype='multipart/form-data')
 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~ Text Base Brushes
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class HtmlText(HtmlBaseBrush):
     def initBrush(self, args, kw):
         self.text = ''.join(args)
+
+    def copy(self):
+        return self.new(self.text)
 
     def asElementTree(self, parent):
         if len(parent):
@@ -252,13 +290,18 @@ class HtmlText(HtmlBaseBrush):
         else:
             parent.text = (parent.text or '') + self.text
 
-class HtmlSpace(HtmlText):
+class HtmlEntity(HtmlBaseBrush):
     def initBrush(self, args, kw):
-        pass
-
+        if args:
+            self.entity = etree.Entity(args[0])
     def asElementTree(self, parent):
-        parent.append(etree.Entity("nbsp"))
+        parent.append(self.entity)
 
+class HtmlSpace(HtmlEntity):
+    entity = etree.Entity('space')
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~ Raw Brushes for HTML Source or Lxml elements
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class HtmlRaw(HtmlListBaseBrush):
@@ -266,6 +309,9 @@ class HtmlRaw(HtmlListBaseBrush):
 
     def initBrush(self, args, kw):
         self.fragments = self.parseFragments(''.join(args))
+
+    def copy(self):
+        raise NotImplementedError("Copy not implemented for HtmlRaw brushes")
 
     def asElementTree(self, parent):
         parent.extend(self.fragments)
@@ -295,6 +341,9 @@ html5Tags = """
     script section select small source span strong style sub summary sup table
     tbody td textarea tfoot th thead time title tr ul var video wbr""".split()
 
+html5HeadTags = """
+    title meta link script style base""".split()
+
 html5ContentAttributeEvents = """
     onabort onerror onmousewheel onblur onfocus onpause oncanplay onformchange
     onplay oncanplaythrough onforminput onplaying onchange oninput onprogress
@@ -311,6 +360,7 @@ htmlTagBrushMap.update(
     form = HtmlForm,
     text = HtmlText,
     space = HtmlSpace,
+    entity = HtmlEntity,
 
     raw = HtmlRaw,
     xml = HtmlRaw,
