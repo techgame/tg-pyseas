@@ -44,16 +44,14 @@ class ComponentSession(object):
         if callable(component):
             component = component(self.root)
         if component is not None:
-            wr = self.bindRenderer(kw.pop('decorators', []))
-            return wr.render(component, **kw)
+            wr = self.bindRenderer(kw.pop('decorators', None))
+            return wr.render(component)
     __call__ = perform
 
-    def bindRenderer(self, decorators=[]):
-        wr = self.WebRenderContext(self.cbMap)
+    def bindRenderer(self, decorators=None):
+        wr = self.WebRenderContext(self.cbMap, flask.request.path)
         if decorators:
             wr.decorators.extend(decorators)
-        #from . import halos
-        #wr.decorators.append(halos.Halo())
         return wr
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

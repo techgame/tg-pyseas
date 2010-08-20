@@ -18,11 +18,14 @@ from .callbackMap import WebCallbackMap, CallbackRegistrationMixin
 
 class WebRenderContext(object):
     outputKey = 'html'
+    context = None
 
-    def __init__(self, cbRegistry, outputKey=None):
+    def __init__(self, cbRegistry, context=None, outputKey=None):
         if cbRegistry is None:
             cbRegistry = WebCallbackMap()
         self.cbRegistry = cbRegistry
+        if context is not None:
+            self.context = context
         if outputKey is not None:
             self.outputKey = outputKey
 
@@ -77,6 +80,8 @@ class BaseRenderer(AbstractRenderer, CallbackRegistrationMixin):
         pass
 
     def callback(self, callback, context=None):
+        if context is None:
+            context = self._rctx.context
         return self._cbRegistry.add(callback, context)
 
     @classmethod
