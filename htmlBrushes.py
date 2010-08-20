@@ -13,7 +13,7 @@
 import weakref
 
 from lxml import etree
-from lxml.html.html5parser import fragments_fromstring
+from lxml.html import fragments_fromstring
 
 from .callbackMap import CallbackRegistrationMixin
 
