@@ -80,7 +80,7 @@ class WebPageHeader(object):
         self._parts.append(('meta', None, attrib))
     def addScript(self, content, **attrib):
         attrib.setdefault('type', "text/javascript")
-        self._parts.append(('script', content, attrib))
+        self._parts.append(('script', content or '', attrib))
     def addStyle(self, content, **attrib):
         self._parts.append(('style', content, attrib))
     def addBase(self, href=None, target=None):
