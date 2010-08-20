@@ -29,6 +29,14 @@ class HtmlAttrs(object):
     @property
     def ns(self): return self.__dict__
 
+    def asXMLAttrib(self):
+        attrib = {}
+        for k, v in self.items():
+            if not isinstance(v, basestring):
+                v = str(v)
+            attrib[k.rstrip('_')] = v
+        return attrib
+
     def copy(self):
         return self.__class__(self.ns)
     def branch(self, *args, **kw):
@@ -130,7 +138,7 @@ class HtmlListBaseBrush(HtmlBaseBrush):
 
     def asElementTree(self, parent):
         elem = etree.SubElement(parent, self.tag)
-        elem.attrib.update(self.attrs)
+        elem.attrib.update(self.attrs.asXMLAttrib())
         for e in self.elements:
             e = e.asElementTree(elem)
             if e is not None:
