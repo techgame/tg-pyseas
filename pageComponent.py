@@ -15,6 +15,7 @@ from .component import WebComponentBase
 from .listComponent import WebListPartsMixin
 
 from .htmlBrushContext import HtmlBrushContextApiMixin
+from .htmlBrushes import htmlHeadTagBrushMap
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Page Component that adds header to the context
@@ -83,9 +84,11 @@ class WebPageComponent(WebListPartsMixin, WebComponentBase):
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class WebPageHeader(HtmlBrushContextApiMixin):
+    htmlHeadTagBrushMap = htmlHeadTagBrushMap
     title = None
+
     def __init__(self, title=None):
-        bctx = self._initBrushContext(None)
+        bctx = self._initBrushContext(None, self.htmlHeadTagBrushMap)
         self._parts = bctx.pushBrush(bctx.head())
 
         self.title = title

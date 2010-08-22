@@ -10,28 +10,52 @@
 #~ Imports 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+import weakref
 import functools
+
 from .htmlBrushes import htmlTagBrushMap
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Definitions 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-class HtmlBrushContextBase(object):
-    tagBrushMap = htmlTagBrushMap
+class CallbackRegistryMixin(object):
+    #~ callback registry accessors ~~~~~~~~~~~~~~~~~~~~~~
 
-    def __init__(self, hostCtx, tagBrushMap=None):
-        self._initBrushContext(hostCtx, tagBrushMap)
+    def bind(self, callback, *args, **kw):
+        if args or kw:
+            callback = functools.partial(callback, *args, **kw)
+        return self.callbackUrl(callback)
 
-    def _initBrushContext(self, hostCtx, tagBrushMap=None):
-        self._brushStack = []
-        if hostCtx is not None:
-            self.callbackUrlAttrs = hostCtx.callbackUrlAttrs
-        if tagBrushMap is not None:
-            self.tagBrushMap = tagBrushMap
+    def callbackUrl(self, callback):
+        return self._cbRegistry.addCallback(callback)
+    callback = callbackUrl
 
     def callbackUrlAttrs(self, callback, **tagAttrs):
-        raise NotImplementedError('Host Context Responsibility: %r' % (self,))
+        attrs = {}
+        # get attrs from decorated functions
+        callback = getattr(callback, 'func', callback)
+        attrs.update(getattr(callback, 'attrs', []))
+
+        if tagAttrs: attrs.update(tagAttrs)
+
+        url = self.callback(callback)
+        return url, attrs
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+class HtmlBrushContext(CallbackRegistryMixin):
+    tagBrushMap = htmlTagBrushMap
+
+    def __init__(self, cbRegistry, tagBrushMap=None):
+        self._initBrushContext(cbRegistry, tagBrushMap)
+
+    def _initBrushContext(self, cbRegistry, tagBrushMap=None):
+        self._wr = weakref.ref(self)
+        self._brushStack = []
+        self._cbRegistry = cbRegistry
+        if tagBrushMap is not None:
+            self.tagBrushMap = tagBrushMap
 
     #~ brush binding and creation ~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -39,10 +63,10 @@ class HtmlBrushContextBase(object):
         brush = self.tagBrushMap.get(tag)
         if brush is None:
             raise LookupError("Brush %r not found"%(tag,), tag)
-        return functools.partial(brush, self, tag)
+        return functools.partial(brush, self._wr, tag)
 
     def createBrush(self, tag, *args, **kw):
-        brush = self.bindBrush(key)
+        brush = self.bindBrush(tag)
         return brush(*args, **kw)
 
     #~ brush context stack ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -81,26 +105,30 @@ class HtmlBrushContextBase(object):
         return last.asXMLString(**kw)
 
     def __html__(self):
-        return self.resultBrush().__html__()
+        last = self.resultBrush()
+        return last.__html__()
+
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~ Brush context with getattr/getitem and call
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-class HtmlBrushContext(HtmlBrushContextBase):
+class HtmlBrushContextApiImpl(object):
     def __getitem__(self, tag):
         return self.bindBrush(tag)
 
-    def __call__(self, key, *args, **kw):
-        brush = self.bindBrush(key)
+    def __call__(self, tag, *args, **kw):
+        brush = self.bindBrush(tag)
         return brush(*args, **kw)
 
-    def __getattr__(self, key):
-        if not key.startswith('_'):
+    def __getattr__(self, tag):
+        if not tag.startswith('_'):
             try:
-                return self.bindBrush(key)
+                return self.bindBrush(tag)
             except LookupError, err:
                 raise AttributeError(*err.args)
 
-        else: raise AttributeError(key)
+        else: raise AttributeError(tag)
 
     def __str__(self): 
         return str(self.__html__)
@@ -109,25 +137,23 @@ class HtmlBrushContext(HtmlBrushContextBase):
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-class HtmlBrushContextApiMixin(object):
+class HtmlBrushContextApi(HtmlBrushContextApiImpl, HtmlBrushContext):
+    pass
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+class HtmlBrushContextApiMixin(HtmlBrushContextApiImpl, CallbackRegistryMixin):
     _brushCtx = None
-    def _initBrushContext(self, hostCtx, tagBrushMap=None):
-        self._brushCtx = HtmlBrushContext(hostCtx, tagBrushMap)
+
+    def _initBrushContext(self, cbRegistry, tagBrushMap=None):
+        self._cbRegistry = cbRegistry
+        self._brushCtx = HtmlBrushContextApi(cbRegistry, tagBrushMap)
+        self.bindBrush = self._brushCtx.bindBrush
+        self.createBrush = self._brushCtx.createBrush
         return self._brushCtx
 
-    def __getitem__(self, tag):
+    def bindBrush(self, tag):
         return self._brushCtx.bindBrush(tag)
-
-    def __call__(self, key, *args, **kw):
-        brush = self._brushCtx.bindBrush(key)
-        return brush(*args, **kw)
-
-    def __getattr__(self, key):
-        if not key.startswith('_'):
-            try:
-                return self._brushCtx.bindBrush(key)
-            except LookupError, err:
-                raise AttributeError(*err.args)
-
-        else: raise AttributeError(key)
+    def createBrush(self, tag, *args, **kw):
+        return self._brushCtx.createBrush(tag, *args, **kw)
 

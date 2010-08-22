@@ -53,6 +53,9 @@ class WebRenderContext(object):
             klass.RenderFactoryMap[key] = RenderFactory
     RenderFactoryMap = {}
 
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~ Renderer Base Classes
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class AbstractRenderer(object):
@@ -64,36 +67,20 @@ class AbstractRenderer(object):
         raise NotImplementedError('Subclass Responsibility: %r' % (self,))
 
     def render(self, component):
-        return component.renderOn(self._rctx)
+        raise NotImplementedError('Subclass Responsibility: %r' % (self,))
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class BaseRenderer(AbstractRenderer):
     def __init__(self, rctx, cbRegistry):
         self._rctx = rctx
-        self._cbRegistry = cbRegistry
-        self._init()
+        self._init(cbRegistry)
 
-    def _init(self):
+    def _init(self, cbRegistry):
         pass
 
-    def bind(self, callback, *args, **kw):
-        if args or kw:
-            callback = functools.partial(callback, *args, **kw)
-        return self.callbackUrl(callback)
-    def callbackUrl(self, callback):
-        return self._cbRegistry.addCallback(callback)
-    callback = callbackUrl
-    def callbackUrlAttrs(self, callback, **tagAttrs):
-        attrs = {}
-        # get attrs from decorated functions
-        callback = getattr(callback, 'func', callback)
-        attrs.update(getattr(callback, 'attrs', []))
-
-        if tagAttrs: attrs.update(tagAttrs)
-
-        url = self.callbackUrl(callback)
-        return url, attrs
+    def render(self, component):
+        return component.renderOn(self._rctx)
 
     @classmethod
     def registerRenderFactory(klass, *outputKeys):

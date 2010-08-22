@@ -74,13 +74,13 @@ class HtmlAttrs(object):
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class HtmlBaseBrush(object):
-    def __init__(self, bctx, tag, *args, **kw):
-        self._bctx = bctx
+    def __init__(self, bctxRef, tag, *args, **kw):
+        self._bctx = bctxRef
         self.tag = tag
         self.initBase()
         self.initBrush(args, kw)
-        if bctx is not None:
-            bctx.onBrushCreated(self)
+        if bctxRef is not None:
+            bctxRef().onBrushCreated(self)
 
     def __repr__(self):
         return '<%s %s>' % (self.__class__.__name__, self.tag)
@@ -145,10 +145,10 @@ class HtmlListBaseBrush(HtmlBaseBrush):
     attrib = property(lambda self: self.attrs)
 
     def __enter__(self):
-        self._bctx.pushBrush(self)
+        self._bctx().pushBrush(self)
         return self
     def __exit__(self, excType, exc, tb):
-        assert self._bctx.popBrush() is self
+        assert self._bctx().popBrush() is self
 
 
     def __len__(self):
@@ -203,7 +203,7 @@ class HtmlListBaseBrush(HtmlBaseBrush):
     def addItem(self, item):
         if item is None: return
         adaptor = self.adaptorForItem(item)
-        item = adaptor(item, self._bctx)
+        item = adaptor(item, self._bctx())
         if item is None: return
         if isinstance(item, dict):
             return self.addAttrs(item)
@@ -271,7 +271,7 @@ class HtmlTagBrush(HtmlListBaseBrush):
             callback = functools.partial(callback, *args, **kw)
         return self.callback(callback)
     def callback(self, callback, **tagAttrs):
-        url, attrs = self._bctx.callbackUrlAttrs(callback, **tagAttrs)
+        url, attrs = self._bctx().callbackUrlAttrs(callback, **tagAttrs)
         self.setCallbackUrl(url, attrs)
         return self
 
@@ -387,3 +387,6 @@ htmlTagBrushMap.update(
     lxml = HtmlLxml,
     etree = HtmlLxml,
     )
+
+htmlHeadTagBrushMap = dict((tag, htmlTagBrushMap[tag]) for tag in html5HeadTags)
+

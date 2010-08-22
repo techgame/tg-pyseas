@@ -42,8 +42,8 @@ class HtmlRenderer(BaseRenderer, HtmlBrushContextApiMixin):
     tagBrushMap = None # use defaults
     decorators = None
 
-    def _init(self):
-        self._initBrushContext(self, self.tagBrushMap)
+    def _init(self, cbRegistry):
+        self._initBrushContext(cbRegistry, self.tagBrushMap)
 
     #~ visitor concrete implementations ~~~~~~~~~~~~~~~~~ 
 
