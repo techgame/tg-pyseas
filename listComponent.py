@@ -60,6 +60,6 @@ class WebListPartsMixin(WebPartsMixin):
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class WebListComponent(WebListPartsMixin, WebComponent):
-    def renderHTMLOn(self, html):
+    def renderHtmlOn(self, html):
         self.renderParts(html)
 

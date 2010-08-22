@@ -48,13 +48,13 @@ class HtmlRenderer(BaseRenderer, HtmlBrushContextApiMixin):
     #~ visitor concrete implementations ~~~~~~~~~~~~~~~~~ 
 
     def _performRenderPage(self, page):
-        with page.renderHTMLCtxOn(self, self.decorators):
-            r = page.renderHTMLOn(self)
+        with page.renderHtmlCtxOn(self, self.decorators):
+            r = page.renderHtmlOn(self)
             self.handleRenderResult(r)
 
     def _performRenderComponent(self, component):
-        with component.renderHTMLCtxOn(self, self.decorators):
-            r = component.renderHTMLOn(self)
+        with component.renderHtmlCtxOn(self, self.decorators):
+            r = component.renderHtmlOn(self)
             self.handleRenderResult(r)
 
     def renderNestedCtx(self, target, outer=None, inner=None):
@@ -62,7 +62,7 @@ class HtmlRenderer(BaseRenderer, HtmlBrushContextApiMixin):
         if outer: lst.extend(outer)
         if inner: lst.extend(inner)
 
-        lst = [c.renderHTMLCtxTargetOn(self, target) for c in lst]
+        lst = [c.renderHtmlCtxTargetOn(self, target) for c in lst]
         return contextlib.nested(*lst)
 
     #~ rendering results ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

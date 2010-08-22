@@ -23,9 +23,9 @@ class WebComponentBase(object):
         return rctx.renderComponent(self)
 
     @contextmanager
-    def renderHTMLCtxOn(self, html, outer):
+    def renderHtmlCtxOn(self, html, outer):
         yield
-    def renderHTMLOn(self, html):
+    def renderHtmlOn(self, html):
         # provide a reasonable default to aid debugging
         html.div(repr(self))
 
@@ -40,7 +40,7 @@ class WebComponent(WebComponentBase):
             return rctx.renderComponent(self)
 
     @contextmanager
-    def renderHTMLCtxOn(self, html, outer):
+    def renderHtmlCtxOn(self, html, outer):
         with html.renderNestedCtx(self, outer, self._decorators):
             yield
 

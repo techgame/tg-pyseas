@@ -29,7 +29,7 @@ class WTFormComponentBase(WebComponent):
         'SubmitField': 0,
     }
 
-    def renderHTMLOn(self, html):
+    def renderHtmlOn(self, html):
         raise NotImplementedError('Subclass Responsibility: %r' % (self,))
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -78,7 +78,7 @@ class WTFormComponentBase(WebComponent):
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class WTFormComponent(wtforms.Form, WTFormComponentBase):
-    def renderHTMLOn(self, html):
+    def renderHtmlOn(self, html):
         self.renderForm(html, self, self.postForm)
 
     def postForm(self, aForm):

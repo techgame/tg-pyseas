@@ -38,7 +38,7 @@ class WebPageComponent(WebListPartsMixin, WebComponentBase):
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    def renderHTMLOn(self, html):
+    def renderHtmlOn(self, html):
         pageHeader = self.pageHeader.copy()
         with html.html():
             head = pageHeader.startRenderHeader(html)
