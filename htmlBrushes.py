@@ -245,7 +245,6 @@ class HtmlListBaseBrush(HtmlBaseBrush):
             entry = aMap.get(kind)
             if entry is not None:
                 return entry
-        print (item, type(item))
         raise ValueError("No adpator for result: %r" %(item,) )
 
 
