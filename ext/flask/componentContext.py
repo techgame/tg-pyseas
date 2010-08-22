@@ -12,13 +12,13 @@
 
 import flask
 
-from pyseas.session import ComponentContext
+from pyseas.context import WebComponentContext
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Definitions 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-class FlaskComponentContext(ComponentContext):
+class FlaskComponentContext(WebComponentContext):
     g_attrname = 'componentContext'
     redirect = staticmethod(flask.redirect)
 

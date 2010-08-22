@@ -14,7 +14,7 @@ import uuid
 import urlparse
 import urllib
 
-from .callbackMap import WebCallbackRegistryMap
+from .callbackRegistry import WebCallbackRegistryMap
 from .renderContext import WebRenderContext
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -87,17 +87,17 @@ class SessionComponentContextManager(object):
 #~ Component Context
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-class ComponentContext(object):
-    WebRenderContext = WebRenderContext
+class WebComponentContext(object):
+    RenderContext = WebRenderContext
     RequestContext = ComponentRequestContext
-    CBRegistryFactory = WebCallbackRegistryMap
+    CallbackRegistryMap = WebCallbackRegistryMap
 
     def __init__(self):
         self._initContext()
         self.init()
 
     def _initContext(self):
-        self.cbRegistryForPath = self.CBRegistryFactory()
+        self.cbRegistryForPath = self.CallbackRegistryMap()
 
     def init(self):
         pass
@@ -108,7 +108,7 @@ class ComponentContext(object):
         raise NotImplementedError('Subclass Responsibility: %r' % (self,))
 
     def createRenderContext(self, cbRegistry, decorators=None):
-        wr = self.WebRenderContext(cbRegistry)
+        wr = self.RenderContext(cbRegistry)
         if decorators:
             wr.decorators.extend(decorators)
         return wr
