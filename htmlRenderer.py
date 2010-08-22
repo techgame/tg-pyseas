@@ -39,9 +39,11 @@ from .htmlBrushContext import HtmlBrushContextApiMixin
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class HtmlRenderer(BaseRenderer, HtmlBrushContextApiMixin):
+    tagBrushMap = None # use defaults
     decorators = None
+
     def _init(self):
-        self._initBrushContext(self.callback)
+        self._initBrushContext(self, self.tagBrushMap)
 
     #~ visitor concrete implementations ~~~~~~~~~~~~~~~~~ 
 
@@ -76,6 +78,14 @@ class HtmlRenderer(BaseRenderer, HtmlBrushContextApiMixin):
             self.raw(r)
         elif etree.iselement(r):
             self.lxml(r)
+
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    def autoRender(self, item, defaultTag=None):
+        if getattr(item, 'isWebComponent', bool)():
+            return self.render(item)
+        else:
+            return self._brushCtx.topBrush().addItem(item)
 
 HtmlRenderer.registerRenderFactory('html', 'html5', 'xhtml')
 

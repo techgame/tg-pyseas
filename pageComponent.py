@@ -21,9 +21,17 @@ from .htmlBrushContext import HtmlBrushContextApiMixin
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class WebPageComponent(WebListPartsMixin, WebComponentBase):
-    def __init__(self, title=None):
+    def __init__(self, title=None, *parts):
+        parts = list(parts)
+        if getattr(title, 'isWebComponent', bool)():
+            parts.insert(0, title)
+            title = None
+
         if title is not None:
             self.title = title
+
+        if parts:
+            self.extend(parts)
 
     def renderOn(self, rctx):
         return rctx.renderPage(self)

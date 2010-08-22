@@ -16,6 +16,15 @@ import types
 #~ Definitions 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+def url_attrs(*args, **kw):
+    attrs = dict(*args, **kw)
+    def tag_attrs_decorator(fn):
+        fn.attrs = attrs
+        return fn
+    return tag_attrs_decorator
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 class objectmethod(object):
     factory = types.MethodType
 

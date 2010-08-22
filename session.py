@@ -14,95 +14,141 @@ import uuid
 import urlparse
 import urllib
 
-import flask
-
-from .callbackMap import WebCallbackMap
+from .callbackMap import WebCallbackRegistryMap
 from .renderContext import WebRenderContext
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Definitions 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-class ComponentSession(object):
-    WebCallbackMap = WebCallbackMap
-    WebRenderContext = WebRenderContext
-    redirect = staticmethod(flask.redirect)
-
-    def __init__(self, mgr):
-        self.root = mgr.RootFactory()
-        self.cbMap = self.WebCallbackMap(mgr.url)
-
-    def callback(self):
-        url = self.cbMap.callback(flask.request.args)
-        if url: return self.redirect(url)
+class ComponentRequestContext(object):
+    def __init__(self, csObj, requestPath, requestArgs):
+        self.csObj = csObj
+        self.cbReg = csObj.cbRegistryForPath(requestPath)
+        self.requestPath = requestPath
+        self.requestArgs = requestArgs
 
     def perform(self, component, **kw):
         r = self.callback()
-        if r is not None: 
-            return r
+        if r is None:
+            r = self.render(component, **kw)
+        return r
 
+    def callback(self):
+        callback = self.cbReg.find(self.requestArgs)
+        if callback:
+            res = callback()
+            if res is None:
+                res = self.csObj.redirect(self.requestPath)
+
+            if getattr(res, 'isWebComponent', bool)():
+                res = self.render(res)
+            return res
+
+    def render(self, component, decorators=None):
         if callable(component):
-            component = component(self.root)
-        if component is not None:
-            wr = self.bindRenderer(kw.pop('decorators', None))
-            return wr.render(component)
-    __call__ = perform
+            component = component(self.csObj)
 
-    def bindRenderer(self, decorators=None):
-        wr = self.WebRenderContext(self.cbMap, flask.request.path)
+        wr = self.csObj.createRenderContext(self.cbReg, decorators)
+        return wr.render(component)
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+class SessionComponentContextManager(object):
+    def __init__(self, ComponentContext, sessionKey):
+        self.ComponentContext = ComponentContext
+        self.sessionKey = sessionKey
+        self.db = {}
+
+    def lookup(self, session, orCreate=True):
+        entryKey = session.get(self.sessionKey)
+        entry = self.db.get(entryKey)
+        if entry is not None:
+            return entry
+
+        if orCreate:
+            entry = self.ComponentContext()
+            entryKey = id(entry)
+            self.db[entryKey] = entry
+            session[self.sessionKey] = entryKey
+        return entry
+
+    def __contains__(self, session):
+        return self.lookup(session, False)
+    def __getitem__(self, session):
+        return self.lookup(session, True)
+    def get(self, session, default=None):
+        r = self.lookup(session, False)
+        if r is None:
+            r = default
+        return r
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~ Component Context
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+class ComponentContext(object):
+    WebRenderContext = WebRenderContext
+    RequestContext = ComponentRequestContext
+    CBRegistryFactory = WebCallbackRegistryMap
+
+    def __init__(self):
+        self._initContext()
+        self.init()
+
+    def _initContext(self):
+        self.cbRegistryForPath = self.CBRegistryFactory()
+
+    def init(self):
+        pass
+
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    def redirect(self, url):
+        raise NotImplementedError('Subclass Responsibility: %r' % (self,))
+
+    def createRenderContext(self, cbRegistry, decorators=None):
+        wr = self.WebRenderContext(cbRegistry)
         if decorators:
             wr.decorators.extend(decorators)
         return wr
 
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    @classmethod
+    def sessionManager(klass, sesionKey):
+        return SessionComponentContextManager(klass, sesionKey)
+
+    def context(self, request):
+        return self.RequestContext(self, request.path, request.args)
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~ Flask Component Context
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-class ComponentSessionManager(object):
-    ComponentSession = ComponentSession
-    session = flask.session
+try: import flask
+except ImportError: pass
+else:
 
-    key = property(lambda self: self.__class__.__name__)
+    class FlaskComponentContext(ComponentContext):
+        g_attrname = 'componentContext'
+        redirect = staticmethod(flask.redirect)
 
+        @classmethod
+        def sessionContext(klass, sessionKey):
+            if not hasattr(sessionKey, 'lookup'):
+                mgr = klass.sessionManager(sessionKey)
+            else: mgr = sessionKey
 
-    def __init__(self, RootFactory, url):
-        self.componentSessionDb = {}
-        self.RootFactory = RootFactory
-        self.url = url
+            def contextSession(mgr=mgr):
+                self = getattr(flask.g, klass.g_attrname, None)
+                if self is None:
+                    self = mgr.lookup(flask.session)
+                    setattr(flask.g, klass.g_attrname, self)
+                return self
 
-    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            return flask.globals.LocalProxy(contextSession)
 
-    def lookup(self, orCreate=True):
-        entryKey = self.session.get(self.key)
-        if entryKey is not None:
-            entry = self.componentSessionDb.get(entryKey)
-            if entry is None:
-                entryKey = None
-        else: entry = None
-
-        if entryKey is None and orCreate:
-            entry = self.ComponentSession(self)
-            entryKey = id(entry)
-            self.componentSessionDb[entryKey] = entry
-            self.session[self.key] = entryKey
-        return entry
-
-    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-    def urljoin(self, path=None, **kw):
-        if not path: return self.url
-        if not isinstance(path, basestring):
-            path = '/'.join(str(e) for e in path)
-
-        if kw: path += '?'+urllib.urlencode(kw)
-        return urlparse.urljoin(self.url, path)
-
-    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-    def callback(self):
-        cs = self.lookup(False)
-        if cs is not None:
-            return cs.callback()
-
-    def perform(self, component, **kw):
-        cs = self.lookup(True)
-        return cs.perform(component, **kw)
+        def context(self, request=flask.request):
+            return self.RequestContext(self, request.path, request.args)
 

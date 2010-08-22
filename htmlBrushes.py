@@ -82,6 +82,9 @@ class HtmlBaseBrush(object):
         if bctx is not None:
             bctx.onBrushCreated(self)
 
+    def __repr__(self):
+        return '<%s %s>' % (self.__class__.__name__, self.tag)
+
     def new(self, *args, **kw):
         return self.__class__(None, self.tag, *args, **kw)
     def copy(self):
@@ -97,12 +100,17 @@ class HtmlBaseBrush(object):
     def initBrush(self, args, kw):
         raise NotImplementedError('Subclass Responsibility: %r' % (self,))
 
-    parent = None
+    def parent(self):
+        return None
+
     def onAddedToBrush(self, parent, explicit=False):
-        self.parent = weakref.ref(parent)
+        if parent is not self.parent():
+            self.parent = weakref.ref(parent)
+            return True
 
     def orphan(self):
-        self.parent = lambda: None
+        self.parent = None
+        del self.parent
         return self
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -133,6 +141,8 @@ class HtmlListBaseBrush(HtmlBaseBrush):
     def copy(self):
         """Deep copy of brush"""
         return self.new(*(e.copy() for e in self._elements), **self.attrs)
+
+    attrib = property(lambda self: self.attrs)
 
     def __enter__(self):
         self._bctx.pushBrush(self)
@@ -180,11 +190,12 @@ class HtmlListBaseBrush(HtmlBaseBrush):
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     def addImplicitBrush(self, brush):
-        brush.onAddedToBrush(self, False)
-        self._elements.append(brush)
+        if brush.onAddedToBrush(self, False):
+            self._elements.append(brush)
+        return brush
     def addBrush(self, brush):
-        brush.onAddedToBrush(self, True)
-        self._elements.append(brush)
+        if brush.onAddedToBrush(self, True):
+            self._elements.append(brush)
         return brush
     def addAttrs(self, attrs):
         self.attrs.update(attrs)
@@ -219,12 +230,17 @@ class HtmlListBaseBrush(HtmlBaseBrush):
         dict: (lambda item,bctx: item),
         str: (lambda item,bctx: bctx.text(item)),
         unicode: (lambda item,bctx: bctx.text(item)),
+        'html': (lambda item,bctx: bctx.raw(item.__html__())),
         }
     def adaptorForItem(self, item):
         try: return item.asBrush
         except AttributeError: pass
 
         aMap = self.adaptorMap
+
+        try: return aMap[item.__html__ and 'html']
+        except AttributeError: pass
+
         for kind in type(item).mro():
             entry = aMap.get(kind)
             if entry is not None:
@@ -237,13 +253,9 @@ class HtmlListBaseBrush(HtmlBaseBrush):
 #~ Tag Brushes with sub-elements and callbacks
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-tagCallbackAttrMap = {
-    'a': 'href',
-    'form': 'action',
-}
-
 class HtmlTagBrush(HtmlListBaseBrush):
     attrs = HtmlListBaseBrush.attrs.copy()
+    _callbackUrlKey = 'href'
 
     def initBrush(self, elems, kwattrs):
         attrs = self.attrs.copy()
@@ -256,22 +268,18 @@ class HtmlTagBrush(HtmlListBaseBrush):
     #~ callback binding ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     def bind(self, callback, *args, **kw):
-        return self.ctxBindEx(None, callback, args, kw)
-    def ctxBind(self, context, callback, *args, **kw):
-        return self.ctxBindEx(context, callback, args, kw)
-    def ctxBindEx(self, context, callback, args, kw):
         if args or kw:
             callback = functools.partial(callback, *args, **kw)
-        return self.callback(callback, context)
-    def callback(self, callback, context=None):
-        url = self._bctx.callback(callback, context)
-        self.setCallbackUrl(url)
+        return self.callback(callback)
+    def callback(self, callback, **tagAttrs):
+        url, attrs = self._bctx.callbackUrlAttrs(callback, **tagAttrs)
+        self.setCallbackUrl(url, attrs)
         return self
 
-    _tagCallbackAttrMap = tagCallbackAttrMap
-    def setCallbackUrl(self, url):
-        key = self._tagCallbackAttrMap[self.tag]
-        self.attrs[key] = url
+    def setCallbackUrl(self, url, cbAttrs):
+        attrs = self.attrs
+        attrs.update(cbAttrs)
+        attrs[self._callbackUrlKey] = url
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Subclasses with useful defaults
@@ -280,6 +288,7 @@ class HtmlTagBrush(HtmlListBaseBrush):
 class HtmlForm(HtmlTagBrush):
     attrs = HtmlTagBrush.attrs.branch(
         method='POST', enctype='multipart/form-data')
+    _callbackUrlKey = 'action'
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Text Base Brushes
@@ -302,12 +311,14 @@ class HtmlText(HtmlBaseBrush):
 class HtmlEntity(HtmlBaseBrush):
     def initBrush(self, args, kw):
         if args:
-            self.entity = etree.Entity(args[0])
+            entity, = args
+            etree.Entity(entity)
+            self.entity = entity
     def asElementTree(self, parent):
-        parent.append(self.entity)
+        parent.append(etree.Entity(self.entity))
 
 class HtmlSpace(HtmlEntity):
-    entity = etree.Entity('nbsp')
+    entity = 'nbsp'
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Raw Brushes for HTML Source or Lxml elements

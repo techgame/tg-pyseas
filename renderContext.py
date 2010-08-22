@@ -10,7 +10,8 @@
 #~ Imports 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-from .callbackMap import WebCallbackMap, CallbackRegistrationMixin
+import functools
+from .callbackMap import WebCallbackRegistry
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Definitions 
@@ -18,14 +19,11 @@ from .callbackMap import WebCallbackMap, CallbackRegistrationMixin
 
 class WebRenderContext(object):
     outputKey = 'html'
-    context = None
 
-    def __init__(self, cbRegistry, context=None, outputKey=None):
+    def __init__(self, cbRegistry, outputKey=None):
         if cbRegistry is None:
-            cbRegistry = WebCallbackMap()
+            cbRegistry = WebCallbackRegistry()
         self.cbRegistry = cbRegistry
-        if context is not None:
-            self.context = context
         if outputKey is not None:
             self.outputKey = outputKey
 
@@ -70,7 +68,7 @@ class AbstractRenderer(object):
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-class BaseRenderer(AbstractRenderer, CallbackRegistrationMixin):
+class BaseRenderer(AbstractRenderer):
     def __init__(self, rctx, cbRegistry):
         self._rctx = rctx
         self._cbRegistry = cbRegistry
@@ -79,10 +77,22 @@ class BaseRenderer(AbstractRenderer, CallbackRegistrationMixin):
     def _init(self):
         pass
 
-    def callback(self, callback, context=None):
-        if context is None:
-            context = self._rctx.context
-        return self._cbRegistry.add(callback, context)
+    def bind(self, callback, *args, **kw):
+        if args or kw:
+            callback = functools.partial(callback, *args, **kw)
+        return self.callbackUrl(callback)
+    def callbackUrl(self, callback):
+        return self._cbRegistry.addCallback(callback)
+    def callbackUrlAttrs(self, callback, **tagAttrs):
+        attrs = {}
+        # get attrs from decorated functions
+        callback = getattr(callback, 'func', callback)
+        attrs.update(getattr(callback, 'attrs', []))
+
+        if tagAttrs: attrs.update(tagAttrs)
+
+        url = self.callbackUrl(callback)
+        return url, attrs
 
     @classmethod
     def registerRenderFactory(klass, *outputKeys):

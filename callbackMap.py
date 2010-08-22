@@ -10,15 +10,11 @@
 #~ Imports 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-import functools
-import urlparse
-import urllib
-
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Definitions 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-class WebCallbackMap(object):
+class WebCallbackRegistry(object):
     url = ''
     fmtUrl = '{0}?ci={1}'
 
@@ -30,17 +26,17 @@ class WebCallbackMap(object):
             fmtUrl.format(self.url, 'rid')
             self.fmtUrl = fmtUrl
 
-    def addUrlEntry(self, callback, context=None):
+    def addCallback(self, callback):
         if not callable(callback):
             raise ValueError("Expected a callable object")
 
-        cid = self.dbKeysForCallback(callback)
-        url = self.fmtUrl.format(self.url, cid)
-        self.db[cid] = callback, context
-        return url
-    add = addUrlEntry
+        cid = self.dbKeyForCallback(callback)
+        cbUrl = self.fmtUrl.format(self.url, cid)
+        self.db[cid] = callback
+        return cbUrl
+    add = addCallback
 
-    def dbKeysForCallback(self, callback):
+    def dbKeyForCallback(self, callback):
         if not callable(callback):
             raise ValueError("Expected a callable object")
 
@@ -55,63 +51,25 @@ class WebCallbackMap(object):
     def clear(self):
         self.db.clear()
 
-    def find(self, cid):
-        return self.db[cid]
-
-    def kwFind(self, kwargs):
+    def find(self, kwargs, default=lambda:None):
         cid = kwargs.get('ci')
-        if cid is not None:
-            return self.find(cid)
-
-    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-    def callback(self, kwargs):
-        r = self.callbackEx(kwargs)
-        if r: r = r[1]
-        return r
-    def callbackEx(self, kwargs):
-        """If a callback is run, returns result of callback and url"""
-        try:
-            entry = self.kwFind(kwargs)
-            if entry is None:
-                return False
-        except LookupError as err:
-            return self.postLookupError()
-
-        callback, context = entry
-        res = callback()
-        return self.postCallback(res, context)
+        if cid is None:
+            return False
+        return self.db.get(cid, default)
     
-    def postLookupError(self):
-        return None, self.url
-    def postCallback(self, res, context):
-        return res, self.urljoin(context)
-
-    #~ utility methods ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-    def urljoin(self, path=None, **kw):
-        if not path: return self.url
-        if not isinstance(path, basestring):
-            path = '/'.join(str(e) for e in path)
-
-        if kw: path += '?'+urllib.urlencode(kw)
-        return urlparse.urljoin(self.url, path)
+    def callback(self, kwargs):
+        callback = self.find(kwargs)
+        return callback()
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#~ Utility mixin
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-class CallbackRegistrationMixin(object):
-    #~ callback registry methods ~~~~~~~~~~~~~~~~~~~~~~~~
+class WebCallbackRegistryMap(dict):
+    Registry = WebCallbackRegistry
+    def __missing__(self, url):
+        r = self.Registry(url)
+        self[url] = r
+        return r
 
-    def bind(self, callback, *args, **kw):
-        return self.ctxBindEx(None, callback, args, kw)
-    def ctxBind(self, context, callback, *args, **kw):
-        return self.ctxBindEx(context, callback, args, kw)
-    def ctxBindEx(self, context, callback, args, kw):
-        if args or kw:
-            callback = functools.partial(callback, *args, **kw)
-        return self.callback(callback, context)
-    def callback(self, callback, context=None):
-        raise NotImplementedError('Subclass Responsibility: %r' % (self,))
+    def __call__(self, url):
+        return self[url]
 

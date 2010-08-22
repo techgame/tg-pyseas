@@ -20,15 +20,18 @@ from .htmlBrushes import htmlTagBrushMap
 class HtmlBrushContextBase(object):
     tagBrushMap = htmlTagBrushMap
 
-    def __init__(self, callback, tagBrushMap=None):
-        self._initBrushContext(callback, tagBrushMap)
+    def __init__(self, hostCtx, tagBrushMap=None):
+        self._initBrushContext(hostCtx, tagBrushMap)
 
-    def _initBrushContext(self, callback, tagBrushMap=None):
+    def _initBrushContext(self, hostCtx, tagBrushMap=None):
         self._brushStack = []
-        if callback is not None:
-            self.callback = callback
+        if hostCtx is not None:
+            self.callbackUrlAttrs = hostCtx.callbackUrlAttrs
         if tagBrushMap is not None:
             self.tagBrushMap = tagBrushMap
+
+    def callbackUrlAttrs(self, callback, **tagAttrs):
+        raise NotImplementedError('Host Context Responsibility: %r' % (self,))
 
     #~ brush binding and creation ~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -107,8 +110,9 @@ class HtmlBrushContext(HtmlBrushContextBase):
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class HtmlBrushContextApiMixin(object):
-    def _initBrushContext(self, callback, tagBrushMap=None):
-        self._brushCtx = HtmlBrushContext(callback, tagBrushMap)
+    _brushCtx = None
+    def _initBrushContext(self, hostCtx, tagBrushMap=None):
+        self._brushCtx = HtmlBrushContext(hostCtx, tagBrushMap)
         return self._brushCtx
 
     def __getitem__(self, tag):
