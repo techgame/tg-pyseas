@@ -83,6 +83,7 @@ class BaseRenderer(AbstractRenderer):
         return self.callbackUrl(callback)
     def callbackUrl(self, callback):
         return self._cbRegistry.addCallback(callback)
+    callback = callbackUrl
     def callbackUrlAttrs(self, callback, **tagAttrs):
         attrs = {}
         # get attrs from decorated functions
