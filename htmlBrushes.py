@@ -203,13 +203,17 @@ class HtmlListBaseBrush(HtmlBaseBrush):
     def addItem(self, item):
         if item is None: return
         adaptor = self.adaptorForItem(item)
-        item = adaptor(item, self._bctx())
-        if item is None: return
-        if isinstance(item, dict):
-            return self.addAttrs(item)
-        elif isinstance(item, list):
-            return self.extend(item)
-        return self.addBrush(item)
+
+        with self:
+            item = adaptor(item, self._bctx())
+
+        if item is not None: 
+            if isinstance(item, dict):
+                return self.addAttrs(item)
+            elif isinstance(item, list):
+                return self.extend(item)
+            else:
+                return self.addBrush(item)
 
     def add(self, item):
         if item is None: return
@@ -230,21 +234,32 @@ class HtmlListBaseBrush(HtmlBaseBrush):
         dict: (lambda item,bctx: item),
         str: (lambda item,bctx: bctx.text(item)),
         unicode: (lambda item,bctx: bctx.text(item)),
+
         'html': (lambda item,bctx: bctx.raw(item.__html__())),
+        'component': (lambda item,bctx: bctx.render(item))
         }
     def adaptorForItem(self, item):
+        aMap = self.adaptorMap
         try: return item.asBrush
         except AttributeError: pass
 
-        aMap = self.adaptorMap
+        try: 
+            if item.isWebComponent():
+                return aMap['component']
+        except AttributeError: 
+            pass
 
-        try: return aMap[item.__html__ and 'html']
-        except AttributeError: pass
+        try: 
+            if item.__html__:
+                return aMap['html']
+        except AttributeError: 
+            pass
 
         for kind in type(item).mro():
             entry = aMap.get(kind)
             if entry is not None:
                 return entry
+
         raise ValueError("No adpator for result: %r" %(item,) )
 
 
@@ -360,8 +375,14 @@ html5Tags = """
     script section select small source span strong style sub summary sup table
     tbody td textarea tfoot th thead time title tr ul var video wbr""".split()
 
+# add default tag -> HtmlTagBrush factories for valid tags
+htmlTagBrushMap = dict((tag, HtmlTagBrush) for tag in html5Tags)
+htmlTagBrushMap.update(form = HtmlForm, )
+
 html5HeadTags = """
     head title meta link noscript script style base""".split()
+
+htmlHeadTagBrushMap = dict((tag, htmlTagBrushMap[tag]) for tag in html5HeadTags)
 
 html5ContentAttributeEvents = """
     onabort onerror onmousewheel onblur onfocus onpause oncanplay onformchange
@@ -373,10 +394,9 @@ html5ContentAttributeEvents = """
     onmousemove onsuspend ondurationchange onmouseout ontimeupdate onemptied
     onmouseover onvolumechange onended onmouseup onwaiting """.split()
 
-# add default tag -> HtmlTagBrush factories for valid tags
-htmlTagBrushMap = dict((tag, HtmlTagBrush) for tag in html5Tags)
-htmlTagBrushMap.update(
-    form = HtmlForm,
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+htmlUtilityTagBrushMap = dict(
     text = HtmlText,
     space = HtmlSpace,
     entity = HtmlEntity,
@@ -385,8 +405,8 @@ htmlTagBrushMap.update(
     xml = HtmlRaw,
 
     lxml = HtmlLxml,
-    etree = HtmlLxml,
-    )
+    etree = HtmlLxml,)
 
-htmlHeadTagBrushMap = dict((tag, htmlTagBrushMap[tag]) for tag in html5HeadTags)
+for brushMap in [htmlHeadTagBrushMap, htmlTagBrushMap]:
+    brushMap.update(htmlUtilityTagBrushMap)
 
