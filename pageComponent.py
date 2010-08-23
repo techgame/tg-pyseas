@@ -44,6 +44,7 @@ class WebPageComponent(WebListPartsMixin, WebComponentBase):
         with html.html():
             head = pageHeader.startRenderHeader(html)
 
+            self.renderPageHeaderOn(pageHeader)
             with html.body():
                 self.renderPageBodyOn(html)
 
@@ -51,6 +52,8 @@ class WebPageComponent(WebListPartsMixin, WebComponentBase):
             # another component modified it from html context
             pageHeader.finishRenderHeader(html, head)
 
+    def renderPageHeaderOn(self, pageHeader):
+        pass
     def renderPageBodyOn(self, html):
         self.renderParts(html)
 
@@ -71,12 +74,16 @@ class WebPageComponent(WebListPartsMixin, WebComponentBase):
 
     _pageHeader = None
     def getPageHeader(self):
-        r = self._pageHeader
-        if r is None:
-            r = WebPageHeader(self.title)
-            self._pageHeader = r
-        return r
+        pageHeader = self._pageHeader
+        if pageHeader is None:
+            pageHeader = WebPageHeader(self.title)
+            self._pageHeader = pageHeader
+            self.initPageHeader(pageHeader)
+        return pageHeader
     pageHeader = property(getPageHeader)
+
+    def initPageHeader(self, pageHeader):
+        pass
 
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
