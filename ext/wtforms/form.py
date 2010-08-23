@@ -34,12 +34,16 @@ class WTFormComponentBase(WebComponent):
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    def renderForm(self, html, form, cbPostForm, **kw):
-        self.nextTabIndex = itertools.count(kw.pop('tabindex', 100)).next
+    def renderForm(self, html, form, cbPostForm, fieldsep=None, **kw):
+        if fieldsep is None:
+            fieldsep = html.p
+        elif fieldsep is False:
+            fieldsep = html.span
 
+        self.nextTabIndex = itertools.count(kw.pop('tabindex', 100)).next
         with html.form(**kw).bind(cbPostForm, form):
             for field in form:
-                with html.p():
+                with fieldsep():
                     self.renderField(html, field)
 
     def renderField(self, html, field, **kw):
