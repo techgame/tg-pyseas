@@ -39,18 +39,26 @@ class ComponentRequestContext(object):
         if callback:
             res = callback()
             if res is None:
-                res = self.csObj.redirect(self.requestPath)
+                return self.redirect()
 
-            if getattr(res, 'isWebComponent', bool)():
-                res = self.render(res)
-            return res
+            res = self.renderCallback(res)
+            return res or self.redirect()
 
-    def render(self, component, decorators=None):
+    def render(self, component, decorators=None, clear=True):
         if callable(component):
             component = component(self.csObj)
 
+        if clear:
+            self.cbReg.clear()
         wr = self.csObj.createRenderContext(self.cbReg, decorators)
         return wr.render(component)
+
+    def renderCallback(self, res, decorators=None):
+        wr = self.csObj.createRenderContext(self.cbReg, decorators)
+        return wr.autoRender(res)
+
+    def redirect(self):
+        return self.csObj.redirect(self.requestPath)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

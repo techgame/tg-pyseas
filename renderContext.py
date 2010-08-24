@@ -34,6 +34,10 @@ class WebRenderContext(object):
         root.renderOn(self)
         return self.renderer.result()
 
+    def autoRender(self, item, defaultTag=None):
+        if getattr(item, 'isWebComponent', bool)():
+            return self.render(item)
+
     def renderPage(self, page):
         return self.renderer._performRenderPage(page)
     def renderComponent(self, component):
