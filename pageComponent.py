@@ -41,16 +41,18 @@ class WebPageComponent(WebListPartsMixin, WebComponentBase):
 
     def renderHtmlOn(self, html):
         pageHeader = self.pageHeader.copy()
-        with html.html():
-            head = pageHeader.startRenderHeader(html)
+        with html.document():
+            html.doctype()
+            with html.html():
+                head = pageHeader.startRenderHeader(html)
 
-            self.renderPageHeaderOn(pageHeader)
-            with html.body():
-                self.renderPageBodyOn(html)
+                self.renderPageHeaderOn(pageHeader)
+                with html.body():
+                    self.renderPageBodyOn(html)
 
-            # render the header after the body, in case 
-            # another component modified it from html context
-            pageHeader.finishRenderHeader(html, head)
+                # render the header after the body, in case 
+                # another component modified it from html context
+                pageHeader.finishRenderHeader(html, head)
 
     def renderPageHeaderOn(self, pageHeader):
         pass
