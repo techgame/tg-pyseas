@@ -297,13 +297,15 @@ tagBoolAttrs = '''
 '''.split('\n')
 
 tagBoolAttrs = [e.strip().partition(':') for e in tagBoolAttrs]
-tagBoolAttrs = [(k.strip(), {'boolAttrs':v.split()}) for k,sep,v in tagBoolAttrs if sep]
+tagBoolAttrs = [(k.strip(), {'boolAttrs':v.split()}) for k,e,v in tagBoolAttrs if e]
+del e,k,v
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-updateTagContexts(tagBoolAttrs)
-for e,v in dataRequiredTags.items():
-    updateTagContexts(v.split(), {'selfClose': e})
-
-del e, k, sep, v
+def _updateTagAttrs():
+    updateTagContexts(tagBoolAttrs)
+    for e,v in dataRequiredTags.items():
+        updateTagContexts(v.split(), {'selfClose': not e})
+_updateTagAttrs()
+del _updateTagAttrs
 
