@@ -106,7 +106,7 @@ class HtmlVisitor(object):
             value = unicode(value)
 
         encode = self.encode
-        key = encode(key)
+        key = encode(key.rstrip('_'))
         if key in tagCtx.get('boolAttrs', ["irrelevant"]):
             return key
 
