@@ -132,6 +132,23 @@ class NothingBrush(object):
     def __exit__(self, excType, exc, tb):
         pass
 
+class IsolatedBrush(object):
+    def __init__(self, bctxRef=None, tag=None):
+        self._bctx = bctxRef
+        if bctxRef is not None:
+            bctxRef().onBrushCreated(self)
+
+    def __enter__(self):
+        self._bctx().pushBrush(self)
+        return self
+
+    def __exit__(self, excType, exc, tb):
+        if self._bctx().popBrush() is not self:
+            raise RuntimeError("Brush stack mistmatch")
+
+    def addImplicitBrush(self, brush):
+        return None
+
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ HTML Tag Brush
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -322,6 +339,18 @@ class HtmlEntity(HtmlBaseBrush):
 class HtmlSpace(HtmlEntity):
     entity = 'nbsp'
 
+class HtmlDoctype(HtmlBaseBrush):
+    def initBrush(self, args, kw):
+        self.setDoctype(*args, **kw)
+
+    def setDoctype(self, name='html', publicId=None, systemId=None):
+        self.name = name
+        self.publicId = publicId
+        self.systemId = systemId
+
+    def acceptHtmlVisitor(self, htmlVis):
+        htmlVis.doctype(self.name, self.publicId, self.systemId)
+
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Raw Brushes for HTML Source
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -379,6 +408,9 @@ html5ContentAttributeEvents = """
 
 htmlUtilityTagBrushMap = dict(
     nothing = NothingBrush,
+    isolated = IsolatedBrush,
+
+    doctype = HtmlDoctype,
 
     text = HtmlText,
     space = HtmlSpace,
