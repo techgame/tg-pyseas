@@ -12,14 +12,12 @@
 
 import weakref
 import functools
+from itertools import izip_longest
 
 try:
     from cStringIO import StringIO
 except ImportError:
     from StringIO import StringIO
-
-from lxml import etree
-import lxml.html
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ HTML Brush Attrs
@@ -32,14 +30,6 @@ class HtmlAttrs(object):
 
     @property
     def ns(self): return self.__dict__
-
-    def asXMLAttrib(self):
-        attrib = {}
-        for k, v in self.items():
-            if not isinstance(v, basestring):
-                v = str(v)
-            attrib[k.rstrip('_')] = v
-        return attrib
 
     def copy(self):
         return self.__class__(self.ns)
@@ -123,31 +113,15 @@ class HtmlBaseBrush(object):
     def __html__(self):
         from .htmlVisitor import HtmlVisitor
         hv = HtmlVisitor()
-        hv.doctype()
         hv.append(self)
         return hv.getResult()
-
-        return self.asXMLString(pretty_print=True)
-
-    def asXMLString(self, **kw):
-        root = self.asRootElementTree()
-        root = root.getroottree()
-        sio = StringIO()
-        root.write(sio, method='html')
-        return sio.getvalue()
-
-    def asRootElementTree(self):
-        root = etree.Element('ROOT')
-        self.asElementTree(root)
-        return root[0]
-    def asElementTree(self, parent):
-        raise NotImplementedError('Subclass Responsibility: %r' % (self,))
 
     def acceptHtmlVisitor(self, htmlVis):
         raise NotImplementedError('Subclass Responsibility: %r' % (self,))
 
+
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#~ HTML Tag Brush
+#~ Utility Brushes
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class NothingBrush(object):
@@ -157,6 +131,10 @@ class NothingBrush(object):
         pass
     def __exit__(self, excType, exc, tb):
         pass
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~ HTML Tag Brush
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class HtmlListBaseBrush(HtmlBaseBrush):
     attrs = HtmlAttrs()
@@ -190,40 +168,16 @@ class HtmlListBaseBrush(HtmlBaseBrush):
         return el
     elements = property(getElements)
 
-    def asElementTree(self, parent):
-        elem = etree.SubElement(parent, self.tag)
-        elem.attrib.update(self.attrs.asXMLAttrib())
-        for e in self.elements:
-            e = e.asElementTree(elem)
-            if e is not None:
-                elem.append(e)
-    def asRootElementTree(self):
-        elem = etree.Element(self.tag)
-        elem.attrib.update(self.attrs.asXMLAttrib())
-        for e in self.elements:
-            e = e.asElementTree(elem)
-            if e is not None:
-                elem.append(e)
-        return elem
-
     def acceptHtmlVisitor(self, htmlVis):
         htmlVis.tagElement(self.tag, self.attrs, self.elements)
 
     def copyElementsTo(self, target):
-        if etree.iselement(target):
-            for e in self.elements:
-                e.asElementTree(target)
-        else:
-            target.extend(e.copy() for e in self.elements)
+        target.extend(e.copy() for e in self.elements)
         return target
     def moveElementsTo(self, target):
         elements = self.elements
         self._elements = []
-        if etree.iselement(target):
-            for e in elements:
-                e.asElementTree(target)
-        else:
-            target.extend(elements)
+        target.extend(elements)
         return target
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -354,24 +308,14 @@ class HtmlText(HtmlBaseBrush):
     def copy(self):
         return self.new(self.text)
 
-    def asElementTree(self, parent):
-        if len(parent):
-            e = parent[-1]
-            e.tail = (e.tail or '') + self.text
-        else:
-            parent.text = (parent.text or '') + self.text
-
     def acceptHtmlVisitor(self, htmlVis):
         htmlVis.cdata(self.text)
 
 class HtmlEntity(HtmlBaseBrush):
+    entity = 'nbsp'
     def initBrush(self, args, kw):
         if args:
-            entity, = args
-            etree.Entity(entity)
-            self.entity = entity
-    def asElementTree(self, parent):
-        parent.append(etree.Entity(self.entity))
+            self.entity, = args
     def acceptHtmlVisitor(self, htmlVis):
         htmlVis.cdataEntity(self.entity)
 
@@ -379,45 +323,24 @@ class HtmlSpace(HtmlEntity):
     entity = 'nbsp'
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#~ Raw Brushes for HTML Source or Lxml elements
+#~ Raw Brushes for HTML Source
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class HtmlRaw(HtmlListBaseBrush):
-    fromstring = staticmethod(lxml.html.fromstring)
-
     def initBrush(self, args, kw):
-        self.rawFragments = list(args)
-        #self.fragments = [self.fromstring(e) for e in args]
+        self.fragments = list(args)
 
     def copy(self):
-        raise NotImplementedError("Copy not implemented for HtmlRaw brushes")
-
-    def asElementTree(self, parent):
-        parent.extend(self.fragments)
-        for e in self.elements:
-            e.asElementTree(parent)
-    def asRootElementTree(self):
-        return self.fragments[0]
+        newSelf = self.new()
+        self.copyElementsTo(newSelf)
+        return newSelf
 
     def acceptHtmlVisitor(self, htmlVis):
-        for frag in self.rawFragments:
-            htmlVis.rawMarkup(frag)
-
-        if self.elements:
-            htmlVis.extend(self.elements)
-
-class HtmlLxml(HtmlRaw):
-    def initBrush(self, args, kw):
-        fragments = []
-        for e in args:
-            if not etree.iselement(e):
-                e = etree.XML(e)
-            fragments.append(e)
-        self.fragments = fragments
-
-    def acceptHtmlVisitor(self, htmlVis):
-        if self.elements:
-            htmlVis.extend(self.elements)
+        for frag,elem in izip_longest(self.fragments, self.elements):
+            if frag is not None:
+                htmlVis.rawMarkup(frag)
+            if elem is not None:
+                htmlVis.append(elem)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ HTML Brush Tags 
@@ -461,11 +384,8 @@ htmlUtilityTagBrushMap = dict(
     space = HtmlSpace,
     entity = HtmlEntity,
 
-    raw = HtmlRaw,
-    xml = HtmlRaw,
+    raw = HtmlRaw,)
 
-    lxml = HtmlLxml,
-    etree = HtmlLxml,)
 
 for brushMap in [htmlHeadTagBrushMap, htmlTagBrushMap]:
     brushMap.update(htmlUtilityTagBrushMap)

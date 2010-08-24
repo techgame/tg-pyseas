@@ -29,8 +29,6 @@ with html.div():
 import itertools
 import contextlib
 
-from lxml import etree
-
 from .renderContext import BaseRenderer
 from .htmlBrushContext import HtmlBrushContextApiMixin
 
@@ -50,12 +48,14 @@ class HtmlRenderer(BaseRenderer, HtmlBrushContextApiMixin):
     def _performRenderPage(self, page):
         with page.renderHtmlCtxOn(self, self.decorators):
             r = page.renderHtmlOn(self)
-            self.handleRenderResult(r)
+            r = self.handleRenderResult(r)
+        return r
 
     def _performRenderComponent(self, component):
         with component.renderHtmlCtxOn(self, self.decorators):
             r = component.renderHtmlOn(self)
-            self.handleRenderResult(r)
+            r = self.handleRenderResult(r)
+        return r
 
     def renderNestedCtx(self, target, outer=None, inner=None):
         lst = []
@@ -72,12 +72,13 @@ class HtmlRenderer(BaseRenderer, HtmlBrushContextApiMixin):
         return last.__html__()
 
     def handleRenderResult(self, r):
-        if r in (True, False): return
+        if r in (None, True, False): return r
 
-        if isinstance(r, basestring):
+        if hasattr(r, '__html__'):
             self.raw(r)
-        elif etree.iselement(r):
-            self.lxml(r)
+        elif isinstance(r, basestring):
+            self.raw(r)
+        return r
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
