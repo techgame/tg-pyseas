@@ -36,15 +36,15 @@ def updateTagContexts(tagList, tagCtx=None, tagContexts=tagContexts):
             tc.update(tagCtx)
 
 
-forceQuoteChars = u">\"'=&; \t\r\n\u000C"
-forceQuoteMapping = dict.fromkeys(forceQuoteChars, '-')
+forceQuoteChars = u">\"'=&?/; \t\r\n\u000C"
+forceQuoteMapping = dict.fromkeys(map(ord, forceQuoteChars), '-')
 
 def mustQuoteAttrValue(value):
-    return not codecs.charmap_encode(value, 'ignore', forceQuoteMapping)
+    return bool(codecs.charmap_encode(value, 'ignore', forceQuoteMapping)[0])
 
 class entity_charmap_codec(dict):
     def __missing__(self, char): 
-        return char
+        return self.get(unichr(char), char)
     def copy(self):
         return self.__class__(dict.copy(self))
     def encode(self, input, final=False):
@@ -82,18 +82,14 @@ class HtmlVisitor(object):
         target.acceptHtmlVisitor(self)
 
     def append(self, item):
-        try: acceptHtmlVisitor = item.acceptHtmlVisitor
-        except AttributeError: pass
-        else: return acceptHtmlVisitor(self)
-
-        if hasattr(item, '__html__'):
+        if hasattr(item, 'acceptHtmlVisitor'):
+            self.visit(item)
+        elif hasattr(item, '__html__'):
             self.rawMarkup(item.__html__())
-        elif lxml.etree.iselement(item):
-            self.rawMarkup(lxml.etree.tostring(item))
         elif isinstance(item, basestring):
             self.cdata(item)
-
-        raise ValueError('Unable to adapt item to an appropraite type')
+        else:
+            raise ValueError('Unable to adapt item to an appropraite type')
 
     def extend(self, iterable):
         append = self.append
@@ -133,7 +129,6 @@ class HtmlVisitor(object):
         if attrs:
             r = [u'']
             r.extend(fmtAttrEntry(k,v,tagCtx) for k,v in attrs)
-            r.append(u'')
             return u' '.join(r)
         else: return u''
 
@@ -143,20 +138,22 @@ class HtmlVisitor(object):
     tagContexts = tagContexts
     def tagOpen(self, tag, attrs=None, selfClose=False):
         tagCtx = self.tagContexts.get(tag, {})
+        selfClose = tagCtx.get('selfClose', selfClose)
+        if not attrs:
+            if selfClose:
+                self.write(u'<'+tag+u'/>')
+                return False
+            else:
+                self.write(u'<'+tag+u'>')
+                return True
 
-        r = [u'<', tag]
-        if attrs:
-            attrs = self.fmtAttrs(attrs, tagCtx)
-            r.append(attrs)
+        attrs = self.fmtAttrs(attrs, tagCtx)
+        r = [u'<', tag, attrs, '>']
+        if selfClose:
+            r[-1] = ' />'
 
-        if tagCtx.get('selfClose', selfClose):
-            r.append(u'/>')
-            self.write(u''.join(r))
-            return False
-
-        r.append(u'>')
         self.write(u''.join(r))
-        return True
+        return not selfClose
 
     def tagClose(self, tag):
         self.write(u'</'+tag+u'>')
@@ -183,6 +180,7 @@ class HtmlVisitor(object):
     def cdata(self, data, escape=True):
         if escape:
             data = self._cdataCodec.encode(data)
+
         self.write(data)
     text = cdata
 
