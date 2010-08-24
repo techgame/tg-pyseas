@@ -13,8 +13,10 @@
 import weakref
 import functools
 
+from cStringIO import StringIO
+
 from lxml import etree
-from lxml.html import fragments_fromstring
+import lxml.html
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ HTML Brush Attrs
@@ -119,10 +121,16 @@ class HtmlBaseBrush(object):
         return self.asXMLString(pretty_print=True)
 
     def asXMLString(self, **kw):
+        root = self.asRootElementTree()
+        root = root.getroottree()
+        sio = StringIO()
+        root.write(sio, method='html')
+        return sio.getvalue()
+
+    def asRootElementTree(self):
         root = etree.Element('ROOT')
         self.asElementTree(root)
-        return ''.join(etree.tostring(e, **kw) for e in root)
-
+        return root[0]
     def asElementTree(self, parent):
         raise NotImplementedError('Subclass Responsibility: %r' % (self,))
 
@@ -130,6 +138,14 @@ class HtmlBaseBrush(object):
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ HTML Tag Brush
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+class NothingBrush(object):
+    def __init__(self, bctxRef=None, tag=None):
+        pass
+    def __enter__(self):
+        pass
+    def __exit__(self, excType, exc, tb):
+        pass
 
 class HtmlListBaseBrush(HtmlBaseBrush):
     attrs = HtmlAttrs()
@@ -148,7 +164,8 @@ class HtmlListBaseBrush(HtmlBaseBrush):
         self._bctx().pushBrush(self)
         return self
     def __exit__(self, excType, exc, tb):
-        assert self._bctx().popBrush() is self
+        if self._bctx().popBrush() is not self:
+            raise RuntimeError("Brush stack mistmatch")
 
 
     def __len__(self):
@@ -169,6 +186,14 @@ class HtmlListBaseBrush(HtmlBaseBrush):
             e = e.asElementTree(elem)
             if e is not None:
                 elem.append(e)
+    def asRootElementTree(self):
+        elem = etree.Element(self.tag)
+        elem.attrib.update(self.attrs.asXMLAttrib())
+        for e in self.elements:
+            e = e.asElementTree(elem)
+            if e is not None:
+                elem.append(e)
+        return elem
 
     def copyElementsTo(self, target):
         if etree.iselement(target):
@@ -339,10 +364,10 @@ class HtmlSpace(HtmlEntity):
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class HtmlRaw(HtmlListBaseBrush):
-    parseFragments = staticmethod(fragments_fromstring)
+    fromstring = staticmethod(lxml.html.fromstring)
 
     def initBrush(self, args, kw):
-        self.fragments = self.parseFragments(''.join(args))
+        self.fragments = [self.fromstring(e) for e in args]
 
     def copy(self):
         raise NotImplementedError("Copy not implemented for HtmlRaw brushes")
@@ -351,6 +376,8 @@ class HtmlRaw(HtmlListBaseBrush):
         parent.extend(self.fragments)
         for e in self.elements:
             e.asElementTree(parent)
+    def asRootElementTree(self):
+        return self.fragments[0]
 
 class HtmlLxml(HtmlRaw):
     def initBrush(self, args, kw):
@@ -397,6 +424,8 @@ html5ContentAttributeEvents = """
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 htmlUtilityTagBrushMap = dict(
+    nothing = NothingBrush,
+
     text = HtmlText,
     space = HtmlSpace,
     entity = HtmlEntity,

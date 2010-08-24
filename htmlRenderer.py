@@ -69,7 +69,7 @@ class HtmlRenderer(BaseRenderer, HtmlBrushContextApiMixin):
 
     def result(self, **kw):
         last = self._brushCtx.resultBrush()
-        return last.asXMLString(**kw)
+        return last.__html__()
 
     def handleRenderResult(self, r):
         if r in (True, False): return
