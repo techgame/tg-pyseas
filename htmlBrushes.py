@@ -121,35 +121,6 @@ class HtmlBaseBrush(object):
 
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#~ Utility Brushes
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-class NothingBrush(object):
-    def __init__(self, bctxRef=None, tag=None):
-        pass
-    def __enter__(self):
-        pass
-    def __exit__(self, excType, exc, tb):
-        pass
-
-class IsolatedBrush(object):
-    def __init__(self, bctxRef=None, tag=None):
-        self._bctx = bctxRef
-        if bctxRef is not None:
-            bctxRef().onBrushCreated(self)
-
-    def __enter__(self):
-        self._bctx().pushBrush(self)
-        return self
-
-    def __exit__(self, excType, exc, tb):
-        if self._bctx().popBrush() is not self:
-            raise RuntimeError("Brush stack mistmatch")
-
-    def addImplicitBrush(self, brush):
-        return None
-
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ HTML Tag Brush
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -379,6 +350,24 @@ class HtmlRaw(HtmlListBaseBrush):
                 htmlVis.rawMarkup(frag)
             if elem is not None:
                 htmlVis.append(elem)
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~ Utility Brushes
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+class NothingBrush(object):
+    def __init__(self, bctxRef=None, tag=None):
+        pass
+    def __enter__(self):
+        pass
+    def __exit__(self, excType, exc, tb):
+        pass
+
+class IsolatedBrush(HtmlListBaseBrush):
+    def __html__(self):
+        return ''
+    def acceptHtmlVisitor(self, htmlVis):
+        pass
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ HTML Brush Tags 
