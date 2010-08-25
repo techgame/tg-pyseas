@@ -39,8 +39,8 @@ updateMultiValueKeyMap(tagMultiValueKeyMap)
 
 class HtmlBrushAttrs(object):
     slots = ['ns']
-    tagMultiValueKeyMap = tagMultiValueKeyMap
-    multiValueKeys = tagMultiValueKeyMap[None]
+    _tagMultiValueKeyMap = tagMultiValueKeyMap
+    _multiValueKeys = _tagMultiValueKeyMap[None]
 
     def __init__(self, *args, **kw):
         self._ns = {}
@@ -51,12 +51,12 @@ class HtmlBrushAttrs(object):
         self = self.copy()
         mvk = multiValueKeys
         if mvk is None:
-            mvkMap = self.tagMultiValueKeyMap
+            mvkMap = self._tagMultiValueKeyMap
             mvk = mvkMap.get(tag)
             if mvk is None:
                 mvk = mvkMap[None]
 
-        self.multiValueKeys = asMultiValueKeys(mvk)
+        self._multiValueKeys = asMultiValueKeys(mvk)
         return self
 
     def asAttrMap(self):
@@ -88,7 +88,7 @@ class HtmlBrushAttrs(object):
         self._ns[key] = value
     def add(self, key, value, sep=None):
         if sep is None:
-            sep = self.multiValueKeys.get(key, ' ')
+            sep = self._multiValueKeys.get(key, ' ')
 
         ns = self._ns
         if key in ns:
@@ -97,7 +97,7 @@ class HtmlBrushAttrs(object):
         return value
     def discard(self, key, value, sep=None):
         if sep is None:
-            sep = self.multiValueKeys.get(key)
+            sep = self._multiValueKeys.get(key)
         r = self[key].split(sep)
         r[:] = [e for e in r if e != value]
         r = sep.join(r)
@@ -140,7 +140,7 @@ class HtmlBrushAttrs(object):
         key = self.asKey(key)
         if key in ns:
             # check for multi-value keys (usually space seperated)
-            sep = self.multiValueKeys.get(key)
+            sep = self._multiValueKeys.get(key)
             if sep:
                 value = sep.join(ns[key], value)
         ns[key] = value
