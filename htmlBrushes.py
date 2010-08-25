@@ -19,50 +19,7 @@ try:
 except ImportError:
     from StringIO import StringIO
 
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#~ HTML Brush Attrs
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-class HtmlAttrs(object):
-    def __init__(self, *args, **kw):
-        if args or kw:
-            self.__dict__.update(*args, **kw)
-
-    @property
-    def ns(self): return self.__dict__
-
-    def copy(self):
-        return self.__class__(self.ns)
-    def branch(self, *args, **kw):
-        r = self.copy() 
-        r.update(*args, **kw)
-        return r
-
-    def update(self, *args, **kw):
-        self.__dict__.update(*args, **kw)
-
-    def __len__(self):
-        return len(self.ns)
-    def __iter__(self):
-        return self.ns.iteritems()
-    def __contains__(self, key):
-        return key in self.ns
-    def get(self, key, default=None):
-        return self.ns.get(key, default)
-    def __getitem__(self, key):
-        return self.ns[key]
-    def __setitem__(self, key, value):
-        self.ns[key] = value
-    def __delitem__(self, key):
-        del self.ns[key]
-
-    def keys(self): return self.ns.keys()
-    def values(self): return self.ns.values()
-    def items(self): return self.ns.items()
-    def iterkeys(self): return self.ns.iterkeys()
-    def itervalues(self): return self.ns.itervalues()
-    def iteritems(self): return self.ns.iteritems()
-
+from .htmlBrushAttrs import HtmlBrushAttrs
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ HTML Base Brush
@@ -125,7 +82,7 @@ class HtmlBaseBrush(object):
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class HtmlListBaseBrush(HtmlBaseBrush):
-    attrs = HtmlAttrs()
+    attrs = HtmlBrushAttrs()
 
     def initBase(self):
         super(HtmlListBaseBrush,self).initBase()
@@ -157,7 +114,7 @@ class HtmlListBaseBrush(HtmlBaseBrush):
     elements = property(getElements)
 
     def acceptHtmlVisitor(self, htmlVis):
-        htmlVis.tagElement(self.tag, self.attrs, self.elements)
+        htmlVis.tagElement(self.tag, self.attrs.asAttrMap(), self.elements)
 
     def copyElementsTo(self, target):
         target.extend(e.copy() for e in self.elements)
@@ -253,7 +210,7 @@ class HtmlTagBrush(HtmlListBaseBrush):
     _callbackUrlKey = 'href'
 
     def initBrush(self, elems, kwattrs):
-        attrs = self.attrs.copy()
+        attrs = self.attrs.tagInstance(self.tag)
         if kwattrs:
             attrs.update(kwattrs)
         self.attrs = attrs
