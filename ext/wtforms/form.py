@@ -60,27 +60,52 @@ class WTFormComponentBase(WebComponent):
         if order is None:
             order = self._fieldLabelOrders.get(field.type, 1)
 
+        # grab attrs for rendering
+        fieldAttrs = self.attrsForField(field.name, kw)
+        if order:
+            labelAttrs = self.attrsForFieldLabel(field.name, labelAttrs)
+
         if order > 0:
             html.raw(field.label(**labelAttrs))
 
-        html.raw(field(**kw))
+        html.raw(field(**fieldAttrs))
 
         if order < 0:
             html.raw(field.label(**labelAttrs))
 
         if field.errors:
-            self.renderErrors(html, field.errors)
+            self.renderFieldErrors(html, field)
 
-    def renderErrors(self, html, errors, **kw):
-        if not errors: return
+    def renderFieldErrors(self, html, field, **kw):
+        if not field.errors: return
         attrs = self.attrErrors
         if kw:
             attrs = attrs.copy()
             attrs.update(kw)
 
         with html.ul(attrs):
-            for err in errors:
+            for err in field.errors:
                 html.li(err)
+
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    fieldAttrs = {}
+    def attrsForField(self, fieldName, kwAttrs):
+        attrs = self.fieldAttrs.get(fieldName, {})
+        if kwAttrs:
+            attrs = attrs.copy()
+            attrs.update(kwAttrs)
+        return attrs
+
+    labelAttrs = {}
+    def attrsForFieldLabel(self, fieldName, kwAttrs):
+        attrs = self.labelAttrs.get(fieldName, {})
+        if kwAttrs:
+            attrs = attrs.copy()
+            attrs.update(kwAttrs)
+        return attrs
+
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     _iterTabIndex = None
     def nextTabIndex(self):
