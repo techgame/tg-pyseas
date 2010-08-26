@@ -41,7 +41,9 @@ class WTFormComponentBase(WebComponent):
         elif fieldsep is False:
             fieldsep = html.nothing
 
-        self.nextTabIndex = itertools.count(kw.pop('tabindex', 100)).next
+        if 'tabindex' in kw:
+            self.setNextTabIndex(kw['tabindex'])
+
         with html.form(**kw).bind(cbPostForm, form):
             for field in form:
                 with fieldsep():
@@ -79,6 +81,16 @@ class WTFormComponentBase(WebComponent):
         with html.ul(attrs):
             for err in errors:
                 html.li(err)
+
+    _iterTabIndex = None
+    def nextTabIndex(self):
+        r = self._iterTabIndex
+        if r is None:
+            self.setNextTabIndex(100)
+            r = self._iterTabIndex
+        return r.next()
+    def setNextTabIndex(self, nextTabIndex):
+        self._iterTabIndex = itertools.count(nextTabIndex)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
