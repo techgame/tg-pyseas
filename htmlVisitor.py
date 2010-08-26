@@ -272,7 +272,7 @@ class HtmlVisitor(object):
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 dataRequiredTags = {
-    True: 'title textarea style script xmp iframe noembed noframes noscript',
+    True: 'title textarea style script xmp iframe noembed noframes noscript div span',
     False: 'base command event-source link meta hr br img embed param area col input source',
 }
 

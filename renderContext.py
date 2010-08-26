@@ -11,7 +11,9 @@
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 import functools
-from .callbackRegistry import WebCallbackRegistryMap
+from contextlib import contextmanager
+
+from .callbackRegistry import WebCallbackRegistry
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Definitions 
@@ -19,6 +21,7 @@ from .callbackRegistry import WebCallbackRegistryMap
 
 class WebRenderContext(object):
     outputKey = 'html'
+    renderer = None
 
     def __init__(self, cbRegistry, outputKey=None):
         if cbRegistry is None:
@@ -30,9 +33,12 @@ class WebRenderContext(object):
         self.decorators = []
 
     def render(self, root):
-        self.renderer = self.createRenderer()
-        root.renderOn(self)
-        return self.renderer.result()
+        if root is None: return
+        renderOn = getattr(root, 'renderOn', root)
+
+        with self.inRenderCtx() as renderer:
+            renderOn(self)
+            return renderer.result()
 
     def autoRender(self, item, defaultTag=None):
         if getattr(item, 'isWebComponent', bool)():
@@ -44,6 +50,14 @@ class WebRenderContext(object):
         return self.renderer._performRenderComponent(component)
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    @contextmanager
+    def inRenderCtx(self):
+        previous = self.renderer
+        renderer = self.createRenderer()
+        self.renderer = renderer
+        yield renderer
+        self.renderer = previous
 
     def createRenderer(self):
         factory = self.RenderFactoryMap[self.outputKey]
