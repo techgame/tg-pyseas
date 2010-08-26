@@ -49,7 +49,7 @@ class WTFormComponentBase(WebComponent):
                 with fieldsep():
                     self.renderField(html, field)
 
-    def renderField(self, html, field, **kw):
+    def renderField(self, html, field, labelAttrs={}, **kw):
         if isinstance(field, basestring):
             field = getattr(self, field)
 
@@ -61,12 +61,12 @@ class WTFormComponentBase(WebComponent):
             order = self._fieldLabelOrders.get(field.type, 1)
 
         if order > 0:
-            html.raw(field.label())
+            html.raw(field.label(**labelAttrs))
 
         html.raw(field(**kw))
 
         if order < 0:
-            html.raw(field.label())
+            html.raw(field.label(**labelAttrs))
 
         if field.errors:
             self.renderErrors(html, field.errors)
