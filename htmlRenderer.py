@@ -80,13 +80,5 @@ class HtmlRenderer(BaseRenderer, HtmlBrushContextApiMixin):
             self.raw(r)
         return r
 
-    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-    def autoRender(self, item, defaultTag=None):
-        if getattr(item, 'isWebComponent', bool)():
-            return self.render(item)
-        else:
-            return self._brushCtx.topBrush().addItem(item)
-
 HtmlRenderer.registerRenderFactory('html', 'html5', 'xhtml')
 
