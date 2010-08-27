@@ -27,8 +27,8 @@ def updateMultiValueKeyMap(mvKeyMap):
     return mvKeyMap
 
 tagMultiValueKeyMap = {
-    'a': 'class rel ping',
-    None: 'class rel',
+    'a': {'class':' ', 'rel': ' ', 'ping': ' ', 'style': '; '},
+    None: {'class':' ', 'rel': ' ', 'style': '; '},
 }
 
 updateMultiValueKeyMap(tagMultiValueKeyMap)

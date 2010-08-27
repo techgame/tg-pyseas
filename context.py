@@ -22,6 +22,7 @@ from .renderContext import WebRenderContext
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class ComponentRequestContext(object):
+    ignoreResTypes = (float, int, long, complex)
     def __init__(self, csObj, requestPath, requestArgs):
         self.csObj = csObj
         self.cbReg = csObj.cbRegistryForPath(requestPath)
@@ -42,7 +43,10 @@ class ComponentRequestContext(object):
                 return self.redirect()
 
             res = self.renderCallback(res)
-            return res or self.redirect()
+            if not res or isinstance(res, self.ignoreResTypes):
+                return self.redirect()
+
+            return res
 
     def render(self, component, decorators=None, clear=True):
         if callable(component):
