@@ -40,7 +40,7 @@ class WebRenderContext(object):
             renderOn(self)
             return renderer.result()
 
-    def autoRender(self, item, defaultTag=None):
+    def autoRender(self, item):
         if getattr(item, 'isWebComponent', bool)():
             return self.render(item)
         else: return item
@@ -104,4 +104,9 @@ class BaseRenderer(AbstractRenderer):
     @classmethod
     def registerRenderFactory(klass, *outputKeys):
         WebRenderContext.registerRenderFactory(klass, *outputKeys)
+
+    def autoRender(self, item):
+        if getattr(item, 'isWebComponent', bool)():
+            return self.render(item)
+        else: return item
 
