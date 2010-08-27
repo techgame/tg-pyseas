@@ -74,22 +74,27 @@ class WebComponent(WebComponentBase):
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     _targetStack = None
-    def call(self, item):
-        item = item.asCalledOn(self.onAnwser)
+    def call(self, item, onAnswer=None):
+        if onAnswer is None:
+            onAnswer = self.onAnswer
+        item = item.asCalledOn(self, onAnswer)
         if item is not None:
             return self.pushTarget(item)
 
     answered = NotImplemented
-    def onAnwser(self, value=None):
-        self.popTarget()
+    def onAnswer(self, value=None):
         self.answered = value
 
-    answerTarget = None
-    def answer(self, value=None):
+    _answerTarget = None
+    def answer(self, *args, **kw):
         if self.target is not None:
-            return self.target.answer(value)
-        else: self.answerTarget(value)
-    def asCalledOn(self, answerTarget):
-        self.answerTarget = answerTarget
+            return self.target.answer(*args, **kw)
+
+        atgt, onAnswer = self._answerTarget
+        self._answerTarget = None
+        atgt.popTarget()
+        return onAnswer(*args, **kw)
+    def asCalledOn(self, answerTarget, onAnswer):
+        self._answerTarget = (answerTarget, onAnswer)
         return self
 
