@@ -40,3 +40,8 @@ class FlaskComponentContext(WebComponentContext):
     def context(self, request=flask.request):
         return self.RequestContext(self, request.path, request.args)
 
+    def callbackMissing(self, url):
+        if flask.request.is_xhr:
+            return flask.abort(404)
+        return flask.redirect(url)
+
