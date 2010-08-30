@@ -36,7 +36,7 @@ class ComponentRequestContext(object):
         return r
 
     def callback(self):
-        callback = self.cbReg.find(self.requestArgs)
+        callback = self.cbReg.find(self.requestArgs, self.callbackMissing)
         if callback:
             res = callback()
             if res is None:
@@ -63,6 +63,9 @@ class ComponentRequestContext(object):
 
     def redirect(self):
         return self.csObj.redirect(self.requestPath)
+
+    def callbackMissing(self):
+        return self.csObj.callbackMissing(self.requestPath)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -118,6 +121,8 @@ class WebComponentContext(object):
 
     def redirect(self, url):
         raise NotImplementedError('Subclass Responsibility: %r' % (self,))
+    def callbackMissing(self, url):
+        return self.redirect(url)
 
     def createRenderContext(self, cbRegistry, decorators=None):
         wr = self.RenderContext(cbRegistry)
