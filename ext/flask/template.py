@@ -30,11 +30,13 @@ class FlaskTemplate(WebComponent):
 
     def renderTemplate(self, html, templateName, **context):
         context = self.updateContext(context, html=html)
-        return flask.render_template(templateName, **context)
+        with html.isolated():
+            return flask.Markup(flask.render_template(templateName, **context))
 
     def renderTemplateString(self, html, source, **context):
         context = self.updateContext(context, html=html)
-        return flask.render_template_string(source, **context)
+        with html.isolated():
+            return flask.Markup(flask.render_template_string(source, **context))
 
     def updateContext(self, context, selfKey='obj', **kw):
         ctx = self.context.copy()
