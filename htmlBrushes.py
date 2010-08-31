@@ -13,6 +13,7 @@
 import weakref
 import functools
 from itertools import izip_longest
+from contextlib import contextmanager
 
 try:
     from cStringIO import StringIO
@@ -66,6 +67,10 @@ class HtmlBaseBrush(object):
         return self
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    @contextmanager
+    def inBrushRenderCtx(self, obj):
+        yield self
 
     def __html__(self):
         from .htmlVisitor import HtmlVisitor
@@ -124,6 +129,9 @@ class HtmlListBaseBrush(HtmlBaseBrush):
         self._elements = []
         target.extend(elements)
         return target
+
+    def clearElements(self):
+        self._elements = []
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -314,17 +322,30 @@ class HtmlRaw(HtmlListBaseBrush):
 
 class NothingBrush(object):
     def __init__(self, bctxRef=None, tag=None):
-        pass
+        self.tag = tag
     def __enter__(self):
         pass
     def __exit__(self, excType, exc, tb):
         pass
 
+    @contextmanager
+    def inBrushRenderCtx(self, obj):
+        yield self
+
 class IsolatedBrush(HtmlListBaseBrush):
-    def __html__(self):
-        return ''
+    def initBrush(self, args, kw): pass
+    def onAddedToBrush(self, parent, explicit=False): pass
+    def orphan(self): pass
+
     def acceptHtmlVisitor(self, htmlVis):
-        pass
+        htmlVis.extend(self.elements)
+
+    @contextmanager
+    def inBrushRenderCtx(self, obj):
+        # clear isolated brush elements to give rendered
+        # context object a clean slate
+        self.clearElements()
+        yield self
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ HTML Brush Tags 

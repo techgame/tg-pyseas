@@ -65,9 +65,21 @@ class HtmlRenderer(BaseRenderer, HtmlBrushContextApiMixin):
         lst = [c.renderHtmlCtxTargetOn(self, target) for c in lst]
         return contextlib.nested(*lst)
 
+    def inBrushRenderCtx(self, obj):
+        return self._brushCtx.inBrushRenderCtx(obj)
+
+    def render(self, component):
+        with self.inBrushRenderCtx(component) as brush:
+            r = component.renderOn(self._rctx)
+            if r is None: r = brush
+            return r
+
     #~ rendering results ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     def result(self, **kw):
+        return self.__html__()
+
+    def __html__(self):
         last = self._brushCtx.resultBrush()
         return last.__html__()
 
@@ -85,6 +97,13 @@ class HtmlRenderer(BaseRenderer, HtmlBrushContextApiMixin):
             return self.render(item)
         else:
             return self._brushCtx.topBrush().addItem(item)
+
+    def __call__(self, tag, *args, **kw):
+        if hasattr(tag, 'isWebComponent'):
+            return self.render(tag)
+
+        return self.createBrush(tag, *args, **kw)
+
 
 HtmlRenderer.registerRenderFactory('html', 'html5', 'xhtml')
 

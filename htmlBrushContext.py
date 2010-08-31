@@ -69,6 +69,9 @@ class HtmlBrushContext(CallbackRegistryMixin):
         brush = self.bindBrush(tag)
         return brush(*args, **kw)
 
+    def inBrushRenderCtx(self, obj):
+        return self.topBrush().inBrushRenderCtx(obj)
+
     #~ brush context stack ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     def topBrush(self):

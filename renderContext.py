@@ -36,7 +36,7 @@ class WebRenderContext(object):
         if root is None: return
         renderOn = getattr(root, 'renderOn', root)
 
-        with self.inRenderCtx() as renderer:
+        with self.inRenderCtx(root) as renderer:
             renderOn(self)
             return renderer.result()
 
@@ -53,7 +53,7 @@ class WebRenderContext(object):
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     @contextmanager
-    def inRenderCtx(self):
+    def inRenderCtx(self, obj):
         previous = self.renderer
         renderer = self.createRenderer()
         self.renderer = renderer
@@ -86,6 +86,9 @@ class AbstractRenderer(object):
         raise NotImplementedError('Subclass Responsibility: %r' % (self,))
 
     def render(self, component):
+        raise NotImplementedError('Subclass Responsibility: %r' % (self,))
+
+    def result(self, **kw):
         raise NotImplementedError('Subclass Responsibility: %r' % (self,))
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
