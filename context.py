@@ -10,10 +10,7 @@
 #~ Imports 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-import uuid
-import urlparse
-import urllib
-
+from contextlib import contextmanager
 from .callbackRegistry import WebCallbackRegistryMap
 from .renderContext import WebRenderContext
 
@@ -23,11 +20,21 @@ from .renderContext import WebRenderContext
 
 class ComponentRequestContext(object):
     ignoreResTypes = (float, int, long, complex)
+    result = None
+    executed = False
+
     def __init__(self, csObj, requestPath, requestArgs):
         self.csObj = csObj
         self.cbReg = csObj.cbRegistryForPath(requestPath)
         self.requestPath = requestPath
         self.requestArgs = requestArgs
+
+    def __nonzero__(self):
+        return self.result is None
+
+    def asResult(self, res):
+        self.result = res
+        return res
 
     def perform(self, component, **kw):
         r = self.callback()
@@ -36,6 +43,10 @@ class ComponentRequestContext(object):
         return r
 
     def callback(self):
+        if self.executed:
+            return self.result
+        self.executed = True
+
         callback = self.cbReg.find(self.requestArgs, self.callbackMissing)
         if callback:
             res = callback()
@@ -48,24 +59,40 @@ class ComponentRequestContext(object):
 
             return res
 
+    def createRenderContext(self, decorators=None, clear=False):
+        if clear: self.cbReg.clear()
+        return self.csObj.createRenderContext(self.cbReg, decorators)
+
     def render(self, component, decorators=None, clear=True):
         if callable(component):
             component = component(self.csObj)
 
-        if clear:
-            self.cbReg.clear()
-        wr = self.csObj.createRenderContext(self.cbReg, decorators)
-        return wr.render(component)
+        rctx = self.createRenderContext(decorators, True)
+        return self.asResult(rctx.render(component))
 
     def renderCallback(self, res, decorators=None):
-        wr = self.csObj.createRenderContext(self.cbReg, decorators)
-        return wr.autoRender(res)
+        rctx = self.createRenderContext(decorators, False)
+        return self.asResult(rctx.autoRender(res))
 
     def redirect(self):
-        return self.csObj.redirect(self.requestPath)
+        return self.asResult(self.csObj.redirect(self.requestPath))
 
     def callbackMissing(self):
-        return self.csObj.callbackMissing(self.requestPath)
+        return self.asResult(self.csObj.callbackMissing(self.requestPath))
+
+    @contextmanager
+    def inRenderCtx(self, obj=None, decorators=None, clear=True):
+        if not self.executed:
+            self.callback()
+
+        if self.result is None: 
+            self.cbReg.clear()
+            rctx = self.createRenderContext(decorators, clear)
+            with rctx.inRenderCtx(obj) as renderer:
+                yield renderer
+            self.result = renderer.result()
+        else:
+            yield None
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -125,10 +152,10 @@ class WebComponentContext(object):
         return self.redirect(url)
 
     def createRenderContext(self, cbRegistry, decorators=None):
-        wr = self.RenderContext(cbRegistry)
+        rctx = self.RenderContext(cbRegistry)
         if decorators:
-            wr.decorators.extend(decorators)
-        return wr
+            rctx.decorators.extend(decorators)
+        return rctx
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
