@@ -24,10 +24,12 @@ class WebRenderContext(object):
     renderer = None
 
     def __init__(self, cbRegistry, outputKey=None):
-        if cbRegistry is None:
+        if cbRegistry is True:
             cbRegistry = WebCallbackRegistry()
         self.cbRegistry = cbRegistry
         if outputKey is not None:
+            if outputKey not in self.RenderFactoryMap:
+                raise LookupError("No render factories registered for key: %r"%(outputKey,), outputKey)
             self.outputKey = outputKey
 
         self.decorators = []
@@ -62,7 +64,7 @@ class WebRenderContext(object):
 
     def createRenderer(self):
         factory = self.RenderFactoryMap[self.outputKey]
-        renderer =  factory(self, self.cbRegistry)
+        renderer = factory(self, self.cbRegistry)
         renderer.decorators = self.decorators
         return renderer
 
