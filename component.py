@@ -11,6 +11,7 @@
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 from contextlib import contextmanager
+from .renderContext import WebRenderContext
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Definitions 
@@ -19,6 +20,11 @@ from contextlib import contextmanager
 class WebComponentBase(object):
     def isWebComponent(self):
         return True
+
+    def render(self, outputKey='html', cbRegistry=None):
+        rctx = WebRenderContext(cbRegistry, outputKey)
+        return rctx.render(self)
+
     def renderOn(self, rctx):
         return rctx.renderComponent(self)
 
