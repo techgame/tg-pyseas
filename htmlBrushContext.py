@@ -34,7 +34,7 @@ class CallbackRegistryMixin(object):
     def callbackUrlAttrs(self, callback, **tagAttrs):
         attrs = {}
         # get attrs from decorated functions
-        callback = getattr(callback, 'func', callback)
+        func = getattr(callback, 'func', callback)
         attrs.update(getattr(callback, 'attrs', []))
 
         if tagAttrs: attrs.update(tagAttrs)
