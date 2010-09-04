@@ -55,7 +55,7 @@ class WebRenderContext(object):
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     @contextmanager
-    def inRenderCtx(self, obj):
+    def inRenderCtx(self, obj=None):
         previous = self.renderer
         renderer = self.createRenderer()
         self.renderer = renderer

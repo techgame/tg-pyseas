@@ -44,6 +44,10 @@ class CallbackRegistryMixin(object):
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+class NullContextManager(object):
+    def __enter__(self): pass
+    def __exit__(self, *args): pass
+
 class HtmlBrushContext(CallbackRegistryMixin):
     tagBrushMap = htmlTagBrushMap
 
@@ -70,7 +74,10 @@ class HtmlBrushContext(CallbackRegistryMixin):
         return brush(*args, **kw)
 
     def inBrushRenderCtx(self, obj):
-        return self.topBrush().inBrushRenderCtx(obj)
+        top = self.topBrush()
+        if top is None:
+            return NullContextManager()
+        return top.inBrushRenderCtx(obj)
 
     #~ brush context stack ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
