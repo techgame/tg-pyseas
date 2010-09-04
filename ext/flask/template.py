@@ -18,12 +18,8 @@ from pyseas import WebComponent
 #~ Definitions 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-class FlaskTemplate(WebComponent):
+class FlaskTemplateBase(WebComponent):
     context = {}
-
-    def __init__(self, **context):
-        if context:
-            self.context = self.updateContext(context, False)
 
     def renderHtmlOn(self, html):
         raise NotImplementedError('Subclass Responsibility: %r' % (self,))
@@ -48,7 +44,15 @@ class FlaskTemplate(WebComponent):
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-class FlaskTemplateSource(FlaskTemplate):
+class FlaskTemplate(FlaskTemplateBase):
+    templateName = None
+
+    def renderHtmlOn(self, html):
+        return self.renderTemplate(html, self.templateName)
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+class FlaskTemplateSource(FlaskTemplateBase):
     source = None
     def __init__(self, source=None, **context):
         if source is not None:
@@ -62,7 +66,7 @@ class FlaskTemplateSource(FlaskTemplate):
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-class FlaskNamedTemplate(FlaskTemplate):
+class FlaskNamedTemplate(FlaskTemplateBase):
     templateName = None
     def __init__(self, templateName=None, **context):
         if templateName is not None:
