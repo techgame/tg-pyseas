@@ -10,7 +10,7 @@
 #~ Imports 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-from .component import WebComponent
+from .component import WebComponent, WebComponentBase
 from .listComponent import WebListComponent
 from .pageComponent import WebPageComponent
 

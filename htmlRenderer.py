@@ -70,7 +70,7 @@ class HtmlRenderer(BaseRenderer, HtmlBrushContextApiMixin):
 
     def render(self, component):
         with self.inBrushRenderCtx(component) as brush:
-            r = component.renderOn(self._rctx)
+            r = component.renderOn(self.ctx)
             if r is None: r = brush
             return r
 

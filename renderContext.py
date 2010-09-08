@@ -33,6 +33,10 @@ class WebRenderContext(object):
             self.outputKey = outputKey
 
         self.decorators = []
+        self._initContext()
+
+    def _initContext(self):
+        self.selected = set()
 
     def render(self, root):
         if root is None: return
@@ -96,15 +100,15 @@ class AbstractRenderer(object):
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class BaseRenderer(AbstractRenderer):
-    def __init__(self, rctx, cbRegistry):
-        self._rctx = rctx
+    def __init__(self, ctx, cbRegistry):
+        self.ctx = ctx
         self._init(cbRegistry)
 
     def _init(self, cbRegistry):
         pass
 
     def render(self, component):
-        return component.renderOn(self._rctx)
+        return component.renderOn(self.ctx)
 
     @classmethod
     def registerRenderFactory(klass, *outputKeys):

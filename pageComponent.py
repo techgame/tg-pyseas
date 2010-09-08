@@ -144,7 +144,7 @@ class WebPageHeader(HtmlBrushContextApiMixin):
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     def startRenderHeader(self, html):
-        html.pageHeader = self
+        html.ctx.pageHeader = self
         return html.head()
 
     def finishRenderHeader(self, html, head):
