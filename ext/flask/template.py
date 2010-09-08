@@ -52,7 +52,7 @@ class FlaskTemplate(FlaskTemplateBase):
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-class FlaskTemplateSource(FlaskTemplateBase):
+class FlaskSourceTemplate(FlaskTemplateBase):
     source = None
     def __init__(self, source=None, **context):
         if source is not None:
