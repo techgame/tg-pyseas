@@ -12,5 +12,5 @@
 
 import flask
 
-from .componentContext import FlaskComponentContext
+from .context import FlaskWebViewContext
 

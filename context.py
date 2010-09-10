@@ -10,159 +10,127 @@
 #~ Imports 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-from contextlib import contextmanager
-from .callbackRegistry import WebCallbackRegistryMap
+from .callbackRegistry import WebCallbackRegistry
 from .renderContext import WebRenderContext
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Definitions 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-class ComponentRequestContext(object):
-    ignoreResTypes = (float, int, long, complex)
-    result = None
-    executed = False
+class RequestContextDispatch(object):
+    ignoreResultTypes = set([type(None), bool, float, int, long, complex])
 
-    def __init__(self, csObj, requestPath, requestArgs):
-        self.csObj = csObj
-        self.cbReg = csObj.cbRegistryForPath(requestPath)
-        self.requestPath = requestPath
-        self.requestArgs = requestArgs
+    #~ Composed objects request methods ~~~~~~~~~~~~~~~~~
 
-    def __nonzero__(self):
-        return self.result is None
+    def findCallbackAndRegistry(self, request, default=False):
+        """Finds registered callback for a valid request or None.  Second
+        result is the callback registry to be passed into createRenderContext
+        for registering new callbacks.
+        
+        Valid callback requests that are not found return default parameter."""
+        raise NotImplementedError('Subclass Responsibility: %r' % (self,))
 
-    def asResult(self, res):
-        self.result = res
-        return res
+    def createRenderContext(self, request, cbRegistry, clear=False):
+        """Creates a WebRenderContext bound to the callback registry for
+        rendering the components."""
+        raise NotImplementedError('Subclass Responsibility: %r' % (self,))
 
-    def perform(self, component, **kw):
-        r = self.callback()
-        if r is None:
-            r = self.render(component, **kw)
-        return r
+    #~ Dispatch request composed method ~~~~~~~~~~~~~~~~~
 
-    def callback(self):
-        if self.executed:
-            return self.result
-        self.executed = True
+    def dispatchRequest(self, request, **nsCtx):
+        return self._performDispatch(request, nsCtx)
 
-        callback = self.cbReg.find(self.requestArgs, self.callbackMissing)
-        if callback:
-            res = callback()
-            if res is None:
-                return self.redirect()
+    def _performDispatch(self, request, nsCtx):
+        """Performs component dispatch, including registered callbacks"""
+        # find if there is a registered callback for the request arguments
+        reqCallback, cbRegistry = self.findCallbackAndRegistry(request, False)
 
-            res = self.renderCallback(res)
-            if not res or isinstance(res, self.ignoreResTypes):
-                return self.redirect()
+        if reqCallback is None:
+            # perform normal component dispatch rendering
+            renderCtx = self.createRenderContext(request, cbRegistry, True)
+            return self._renderComponentView(request, renderCtx, nsCtx)
 
-            return res
+        if reqCallback is False:
+            # the callback referenced correctly, but missing.
+            return self._renderCallbackMissing(request)
 
-    def createRenderContext(self, decorators=None, clear=False):
-        if clear: self.cbReg.clear()
-        return self.csObj.createRenderContext(self.cbReg, decorators)
+        # perform registered callback
+        cbResult = reqCallback()
 
-    def render(self, component, decorators=None, clear=True):
-        if callable(component):
-            component = component(self.csObj)
+        # render the callback's cbResult to support AJAX style components
+        return self._renderCallbackResult(request, cbRegistry, cbResult)
 
-        rctx = self.createRenderContext(decorators, True)
-        return self.asResult(rctx.render(component))
+    def _renderCallbackResult(self, request, cbRegistry, cbResult):
+        if type(cbResult) not in self.ignoreResultTypes:
+            # if there useful cbResult, create a render context
+            renderCtx = self.createRenderContext(request, cbRegistry, False)
+            # render the callback cbResult
+            cbResult = self._renderCallbackView(request, renderCtx, cbResult)
+            if type(cbResult) not in self.ignoreResultTypes:
+                return cbResult
+        # otherwise, perform redirect to the request path
+        return self._renderCallbackRedirect(request)
 
-    def renderCallback(self, res, decorators=None):
-        rctx = self.createRenderContext(decorators, False)
-        return self.asResult(rctx.autoRender(res))
 
-    def redirect(self):
-        return self.asResult(self.csObj.redirect(self.requestPath))
+    #~ Render dispatch extension points ~~~~~~~~~~~~~~~~~
 
-    def callbackMissing(self):
-        return self.asResult(self.csObj.callbackMissing(self.requestPath))
+    def _renderComponentView(self, request, renderCtx, nsCtx):
+        raise NotImplementedError('Subclass Responsibility: %r' % (self,))
+    def _renderCallbackView(self, request, renderCtx, cbResult):
+        raise NotImplementedError('Subclass Responsibility: %r' % (self,))
 
-    @contextmanager
-    def inRenderCtx(self, obj=None, decorators=None, clear=True):
-        if not self.executed:
-            self.callback()
-
-        if self.result is None: 
-            self.cbReg.clear()
-            rctx = self.createRenderContext(decorators, clear)
-            with rctx.inRenderCtx(obj) as renderer:
-                yield renderer
-            self.result = renderer.result()
-        else:
-            yield None
+    def _renderCallbackMissing(self, request):
+        # test for AJAX request and return a 404 instead of redirect
+        raise NotImplementedError('Subclass Responsibility: %r' % (self,))
+    def _renderCallbackRedirect(self, request):
+        raise NotImplementedError('Subclass Responsibility: %r' % (self,))
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-class SessionComponentContextManager(object):
-    def __init__(self, ComponentContext, sessionKey):
-        self.ComponentContext = ComponentContext
-        self.sessionKey = sessionKey
-        self.db = {}
-
-    def lookup(self, session, orCreate=True):
-        entryKey = session.get(self.sessionKey)
-        entry = self.db.get(entryKey)
-        if entry is not None:
-            return entry
-
-        if orCreate:
-            entry = self.ComponentContext()
-            entryKey = id(entry)
-            self.db[entryKey] = entry
-            session[self.sessionKey] = entryKey
-        return entry
-
-    def __contains__(self, session):
-        return self.lookup(session, False)
-    def __getitem__(self, session):
-        return self.lookup(session, True)
-    def get(self, session, default=None):
-        r = self.lookup(session, False)
-        if r is None:
-            r = default
-        return r
-
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#~ Component Context
+#~ Web View Context
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-class WebComponentContext(object):
+class WebViewContextBase(RequestContextDispatch):
     RenderContext = WebRenderContext
-    RequestContext = ComponentRequestContext
-    CallbackRegistryMap = WebCallbackRegistryMap
+    CallbackRegistry = WebCallbackRegistry
+    decorators = None
 
     def __init__(self):
-        self._initContext()
-        self.init()
+        self._initViewContext()
 
-    def _initContext(self):
-        self.cbRegistryForPath = self.CallbackRegistryMap()
+    def _initViewContext(self):
+        self._cbRegistryMap = self.CallbackRegistry.newRegistryMap()
 
-    def init(self):
-        pass
-
-    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-    def redirect(self, url):
+    def findRootForRequest(self, request, nsCtx):
         raise NotImplementedError('Subclass Responsibility: %r' % (self,))
-    def callbackMissing(self, url):
-        return self.redirect(url)
 
-    def createRenderContext(self, cbRegistry, decorators=None):
+    #~ Composed objects request methods ~~~~~~~~~~~~~~~~~
+
+    def findCallbackAndRegistry(self, request, default=False):
+        """Finds registered callback for a valid request or None.  Second
+        result is the callback registry to be passed into createRenderContext
+        for registering new callbacks.
+        
+        Valid callback requests that are not found return default parameter."""
+        cbRegistry = self._cbRegistryMap(request.path)
+        reqCallback = cbRegistry.find(request.args, default)
+        return reqCallback, cbRegistry
+
+    def createRenderContext(self, request, cbRegistry, clear=False):
+        """Creates a WebRenderContext bound to the callback registry for
+        rendering the components."""
+        if clear: 
+            cbRegistry.clear()
+
         rctx = self.RenderContext(cbRegistry)
-        if decorators:
-            rctx.decorators.extend(decorators)
+        if self.decorators:
+            rctx.decorators.extend(self.decorators)
         return rctx
 
-    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    #~ Render dispatch extension points ~~~~~~~~~~~~~~~~~
 
-    @classmethod
-    def sessionManager(klass, sesionKey):
-        return SessionComponentContextManager(klass, sesionKey)
-
-    def context(self, request):
-        return self.RequestContext(self, request.path, request.args)
+    def _renderComponentView(self, request, renderCtx, nsCtx):
+        root = self.findRootForRequest(request, nsCtx)
+        return renderCtx.render(root)
+    def _renderCallbackView(self, request, renderCtx, cbResult):
+        return renderCtx.autoRender(cbResult)
 
