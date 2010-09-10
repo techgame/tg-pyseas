@@ -52,7 +52,9 @@ class FlaskWebViewContext(FlaskWebViewContextBase):
         return asComponentView
 
     def _componentView(self, view, *args, **kw):
-        rootViewFn = partial(view, *args, **kw)
+        if args or kw:
+            rootViewFn = partial(view, *args, **kw)
+        else: rootViewFn = view
         return self.dispatchRequest(rootViewFn=rootViewFn)
 
     def findRootForRequest(self, request, nsCtx):
