@@ -57,17 +57,26 @@ class WebCallbackRegistry(object):
     def find(self, kwargs, default=missingCallback):
         cid = kwargs.get('ci')
         if cid is None:
-            return False
+            return None
         return self.db.get(cid, default)
     
     def callback(self, kwargs):
         callback = self.find(kwargs)
         return callback()
 
+    @classmethod
+    def newRegistryMap(klass):
+        return WebCallbackRegistryMap(klass)
+
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class WebCallbackRegistryMap(dict):
     Registry = WebCallbackRegistry
+
+    def __init__(self, Registry=None):
+        if Registry is not None:
+            self.Registry = Registry
+
     def __missing__(self, url):
         r = self.Registry(url)
         self[url] = r
