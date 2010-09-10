@@ -74,15 +74,15 @@ def openHtmlIO(host, encoding='utf-8', errors='xmlcharrefreplace'):
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-class HtmlVisitor(object):
+class HtmlBrushVisitor(object):
     def __init__(self, encoding=None, errors=None):
         self.openHtmlIO(encoding, errors)
 
     def visit(self, target):
-        target.acceptHtmlVisitor(self)
+        target.acceptHtmlBrushVisitor(self)
 
     def append(self, item):
-        if hasattr(item, 'acceptHtmlVisitor'):
+        if hasattr(item, 'acceptHtmlBrushVisitor'):
             self.visit(item)
         elif hasattr(item, '__html__'):
             self.rawMarkup(item.__html__())

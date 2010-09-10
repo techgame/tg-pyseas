@@ -14,9 +14,6 @@
 #~ Definitions 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-def missingCallback():
-    pass
-
 class WebCallbackRegistry(object):
     url = ''
     fmtUrl = '{0}?ci={1}'
@@ -54,7 +51,7 @@ class WebCallbackRegistry(object):
     def clear(self):
         self.db.clear()
 
-    def find(self, kwargs, default=missingCallback):
+    def find(self, kwargs, default=False):
         cid = kwargs.get('ci')
         if cid is None:
             return None

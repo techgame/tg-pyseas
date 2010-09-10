@@ -10,12 +10,11 @@
 #~ Imports 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-from collections import defaultdict
 from .component import WebComponentBase
 from .listComponent import WebListPartsMixin
 
-from .htmlBrushContext import HtmlBrushContextApiMixin
-from .htmlBrushes import htmlHeadTagBrushMap
+from .renderer.htmlBrush import HtmlBrushContextApiMixin
+from .renderer.htmlBrush import htmlHeadTagBrushMap
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Page Component that adds header to the context

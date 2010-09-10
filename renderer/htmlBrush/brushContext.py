@@ -13,7 +13,7 @@
 import weakref
 import functools
 
-from .htmlBrushes import htmlTagBrushMap
+from .brushes import htmlTagBrushMap
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Definitions 

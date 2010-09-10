@@ -10,10 +10,7 @@
 #~ Imports 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-import functools
 from contextlib import contextmanager
-
-from .callbackRegistry import WebCallbackRegistry
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Definitions 
@@ -25,8 +22,9 @@ class WebRenderContext(object):
 
     def __init__(self, cbRegistry, outputKey=None):
         if cbRegistry is True:
-            cbRegistry = WebCallbackRegistry()
+            cbRegistry = self.createCallbackRegistry()
         self.cbRegistry = cbRegistry
+
         if outputKey is not None:
             if outputKey not in self.RenderFactoryMap:
                 raise LookupError("No render factories registered for key: %r"%(outputKey,), outputKey)
@@ -79,43 +77,9 @@ class WebRenderContext(object):
     RenderFactoryMap = {}
 
 
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#~ Renderer Base Classes
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-class AbstractRenderer(object):
-    #~ visitor double dispatch pattern ~~~~~~~~~~~~~~~~~~
-
-    def _performRenderPage(self, page):
-        raise NotImplementedError('Subclass Responsibility: %r' % (self,))
-    def _performRenderComponent(self, component):
-        raise NotImplementedError('Subclass Responsibility: %r' % (self,))
-
-    def render(self, component):
-        raise NotImplementedError('Subclass Responsibility: %r' % (self,))
-
-    def result(self, **kw):
-        raise NotImplementedError('Subclass Responsibility: %r' % (self,))
-
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-class BaseRenderer(AbstractRenderer):
-    def __init__(self, ctx, cbRegistry):
-        self.ctx = ctx
-        self._init(cbRegistry)
-
-    def _init(self, cbRegistry):
-        pass
-
-    def render(self, component):
-        return component.renderOn(self.ctx)
-
-    @classmethod
-    def registerRenderFactory(klass, *outputKeys):
-        WebRenderContext.registerRenderFactory(klass, *outputKeys)
-
-    def autoRender(self, item):
-        if getattr(item, 'isWebComponent', bool)():
-            return self.render(item)
-        else: return item
+    def createCallbackRegistry(self):
+        from pyseas.engine import WebCallbackRegistry
+        return WebCallbackRegistry()
 

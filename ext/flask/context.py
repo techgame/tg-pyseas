@@ -14,7 +14,7 @@ from functools import partial, update_wrapper
 
 import flask
 
-from pyseas.context import WebViewContextBase
+from pyseas.engine import WebViewContextBase
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Definitions 

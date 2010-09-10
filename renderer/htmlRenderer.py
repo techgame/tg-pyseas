@@ -26,11 +26,10 @@ with html.div():
 #~ Imports 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-import itertools
 import contextlib
 
-from .renderContext import BaseRenderer
-from .htmlBrushContext import HtmlBrushContextApiMixin
+from .baseRenderer import BaseRenderer
+from .htmlBrush import HtmlBrushContextApiMixin
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Html Rendering brushes

@@ -11,7 +11,6 @@
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 from contextlib import contextmanager
-from .renderContext import WebRenderContext
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Definitions 
@@ -22,6 +21,7 @@ class WebComponentBase(object):
         return True
 
     def render(self, outputKey='html', cbRegistry=None):
+        from pyseas.renderer import WebRenderContext
         rctx = WebRenderContext(cbRegistry, outputKey)
         return rctx.render(self)
 

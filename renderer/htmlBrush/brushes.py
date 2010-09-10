@@ -15,12 +15,8 @@ import functools
 from itertools import izip_longest
 from contextlib import contextmanager
 
-try:
-    from cStringIO import StringIO
-except ImportError:
-    from StringIO import StringIO
-
-from .htmlBrushAttrs import HtmlBrushAttrs
+from .brushAttrs import HtmlBrushAttrs
+from .brushVisitor import HtmlBrushVisitor
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ HTML Base Brush
@@ -73,12 +69,11 @@ class HtmlBaseBrush(object):
         yield self
 
     def __html__(self):
-        from .htmlVisitor import HtmlVisitor
-        hv = HtmlVisitor()
+        hv = HtmlBrushVisitor()
         hv.append(self)
         return hv.getResult()
 
-    def acceptHtmlVisitor(self, htmlVis):
+    def acceptHtmlBrushVisitor(self, htmlVis):
         raise NotImplementedError('Subclass Responsibility: %r' % (self,))
 
 
@@ -118,7 +113,7 @@ class HtmlListBaseBrush(HtmlBaseBrush):
         return el
     elements = property(getElements)
 
-    def acceptHtmlVisitor(self, htmlVis):
+    def acceptHtmlBrushVisitor(self, htmlVis):
         htmlVis.tagElement(self.tag, self.attrs.asAttrMap(), self.elements)
 
     def copyElementsTo(self, target):
@@ -261,7 +256,7 @@ class HtmlText(HtmlBaseBrush):
     def copy(self):
         return self.new(self.text)
 
-    def acceptHtmlVisitor(self, htmlVis):
+    def acceptHtmlBrushVisitor(self, htmlVis):
         htmlVis.cdata(self.text)
 
 class HtmlEntity(HtmlBaseBrush):
@@ -269,7 +264,7 @@ class HtmlEntity(HtmlBaseBrush):
     def initBrush(self, args, kw):
         if args:
             self.entity, = args
-    def acceptHtmlVisitor(self, htmlVis):
+    def acceptHtmlBrushVisitor(self, htmlVis):
         htmlVis.cdataEntity(self.entity)
 
 class HtmlSpace(HtmlEntity):
@@ -284,7 +279,7 @@ class HtmlDoctype(HtmlBaseBrush):
         self.publicId = publicId
         self.systemId = systemId
 
-    def acceptHtmlVisitor(self, htmlVis):
+    def acceptHtmlBrushVisitor(self, htmlVis):
         htmlVis.doctype(self.name, self.publicId, self.systemId)
 
 
@@ -293,7 +288,7 @@ class HtmlDocument(HtmlListBaseBrush):
         if elems:
             self.extend(elems)
 
-    def acceptHtmlVisitor(self, htmlVis):
+    def acceptHtmlBrushVisitor(self, htmlVis):
         htmlVis.extend(self.elements)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -309,7 +304,7 @@ class HtmlRaw(HtmlListBaseBrush):
         self.copyElementsTo(newSelf)
         return newSelf
 
-    def acceptHtmlVisitor(self, htmlVis):
+    def acceptHtmlBrushVisitor(self, htmlVis):
         for frag,elem in izip_longest(self.fragments, self.elements):
             if frag is not None:
                 htmlVis.rawMarkup(frag)
@@ -337,7 +332,7 @@ class IsolatedBrush(HtmlListBaseBrush):
     def onAddedToBrush(self, parent, explicit=False): pass
     def orphan(self): pass
 
-    def acceptHtmlVisitor(self, htmlVis):
+    def acceptHtmlBrushVisitor(self, htmlVis):
         htmlVis.extend(self.elements)
 
     @contextmanager
@@ -398,4 +393,6 @@ htmlUtilityTagBrushMap = dict(
 
 for brushMap in [htmlHeadTagBrushMap, htmlTagBrushMap]:
     brushMap.update(htmlUtilityTagBrushMap)
+
+del brushMap, htmlUtilityTagBrushMap
 
