@@ -21,7 +21,6 @@ from .contextDispatch import RequestContextDispatch
 class WebViewContextBase(RequestContextDispatch):
     RenderContext = WebRenderContext
     CallbackRegistry = WebCallbackRegistry
-    decorators = None
 
     def __init__(self):
         self._initViewContext()
@@ -50,10 +49,7 @@ class WebViewContextBase(RequestContextDispatch):
         if clear: 
             cbRegistry.clear()
 
-        rctx = self.RenderContext(cbRegistry)
-        if self.decorators:
-            rctx.decorators.extend(self.decorators)
-        return rctx
+        return self.RenderContext(cbRegistry)
 
     #~ Render dispatch extension points ~~~~~~~~~~~~~~~~~
 

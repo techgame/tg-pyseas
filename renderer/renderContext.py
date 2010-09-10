@@ -30,7 +30,6 @@ class WebRenderContext(object):
                 raise LookupError("No render factories registered for key: %r"%(outputKey,), outputKey)
             self.outputKey = outputKey
 
-        self.decorators = []
         self._initContext()
 
     def _initContext(self):
@@ -66,9 +65,7 @@ class WebRenderContext(object):
 
     def createRenderer(self):
         factory = self.RenderFactoryMap[self.outputKey]
-        renderer = factory(self, self.cbRegistry)
-        renderer.decorators = self.decorators
-        return renderer
+        return factory(self, self.cbRegistry)
 
     @classmethod
     def registerRenderFactory(klass, RenderFactory, *outputKeys):

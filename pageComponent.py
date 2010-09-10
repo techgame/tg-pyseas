@@ -33,6 +33,11 @@ class WebPageComponent(WebListPartsMixin, WebComponentBase):
         if parts:
             self.extend(parts)
 
+        self.init()
+
+    def init(self):
+        pass
+
     def renderOn(self, rctx):
         return rctx.renderPage(self)
 
