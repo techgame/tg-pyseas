@@ -13,5 +13,5 @@
 import flask
 
 from .context import FlaskWebViewContext
-from .sessionComponent import FlaskObjectSessions, FlaskSessionComponent
+from .sessionComponent import FlaskSessionComponent
 

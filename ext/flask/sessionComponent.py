@@ -12,21 +12,13 @@
 
 import flask
 
-from pyseas.sessionComponent import ObjectSessions, SessionComponent
+from pyseas.sessionComponent import SessionComponent
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Definitions 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-class FlaskObjectSessions(ObjectSessions):
-    def __init__(self, sessionKey, session=flask.session):
-        ObjectSessions.__init__(self, sessionKey, session)
-
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 class FlaskSessionComponent(SessionComponent):
-    ObjectSessions = FlaskObjectSessions
-
     def __init__(self, sessionKey, factory=None, *args, **kw):
         self.objSessions = self.ObjectSessions(sessionKey, flask.session)
         if factory is not None or args or kw:
