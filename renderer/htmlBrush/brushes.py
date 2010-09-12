@@ -14,6 +14,7 @@ import weakref
 import functools
 from itertools import izip_longest
 from contextlib import contextmanager
+from urllib import urlencode
 
 from .brushAttrs import HtmlBrushAttrs
 from .brushVisitor import HtmlBrushVisitor
@@ -235,6 +236,17 @@ class HtmlTagBrush(HtmlListBaseBrush):
         attrs = self.attrs
         attrs.update(cbAttrs)
         attrs[self._callbackUrlKey] = url
+
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    urlencode = staticmethod(urlencode)
+    def newUrl(self, _url_, *args, **kw):
+        if args: kw = dict(*args, **kw)
+        return _url_.split('?', 1)[0]+'?'+self.urlencode(kw)
+    def url(self, _url_, *args, **kw):
+        url = self.newUrl(_url_, *args, **kw)
+        self.attrs[self._callbackUrlKey] = url
+        return url
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Subclasses with useful defaults
