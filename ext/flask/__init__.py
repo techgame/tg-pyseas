@@ -14,4 +14,5 @@ import flask
 
 from .context import FlaskWebViewContext
 from .sessionComponent import FlaskSessionComponent
+from .sessionComponent import sessionProxy, FlaskComponent
 

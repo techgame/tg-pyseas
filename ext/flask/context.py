@@ -15,6 +15,7 @@ from functools import partial, update_wrapper
 import flask
 
 from pyseas.engine import WebViewContextBase
+from .sessionComponent import sessionProxy, sessionFactory
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Definitions 
@@ -51,6 +52,12 @@ class FlaskWebViewContext(FlaskWebViewContextBase):
             return routeDecorator(viewFn)
         return asComponentView
 
+    def addComponent(self, component, rule, endpoint=None, **options):
+        if endpoint is None:
+            endpoint = 'wc-%08x'%(id(component),)
+        viewFn = partial(self.dispatchRequest, root=component)
+        self._appOrModel.add_url_rule(rule, endpoint, viewFn, **options)
+
     def _componentView(self, view, *args, **kw):
         if args or kw:
             rootViewFn = partial(view, *args, **kw)
@@ -58,6 +65,11 @@ class FlaskWebViewContext(FlaskWebViewContextBase):
         return self.dispatchRequest(rootViewFn=rootViewFn)
 
     def findRootForRequest(self, request, nsCtx):
-        rootViewFn = nsCtx['rootViewFn']
-        return rootViewFn()
+        rootViewFn = nsCtx.get('rootViewFn')
+        if rootViewFn is not None:
+            return rootViewFn()
+        else: return nsCtx.get('root')
+
+    newSessionProxy = staticmethod(sessionProxy)
+    newSessionFactory = staticmethod(sessionFactory)
 

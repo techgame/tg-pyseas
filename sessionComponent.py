@@ -14,6 +14,7 @@ import os
 import time
 import functools
 import collections
+from hashlib import md5
 from itertools import islice
 
 from .component import WebComponent
@@ -25,37 +26,48 @@ from .component import WebComponent
 class ObjectSessions(object):
     Factory = None
 
-    def __init__(self, sessionKey, session):
-        self._initSession(sessionKey, session)
+    def __init__(self, factory=None, *args, **kw):
         self._initCollection()
+        if factory is not None:
+            self.bindFactory(factory, *args, **kw)
 
     def bindFactory(self, factory, *args, **kw):
         if args or kw:
             factory = functools.partial(factory, *args, **kw)
         self.Factory = factory
+        self._assignUniqueAttrKey(factory)
+    bind = bindFactory
 
-    def lookup(self, orCreate=True):
-        key = self.getEntrySessionKey()
-        entry = self.fetchEntry(key)
-        if entry is not None:
-            return entry
+    def _assignUniqueAttrKey(self, factory):
+        tgt = factory
+        while not hasattr(tgt, '__module__'):
+            tgt = tgt.func
 
-        if orCreate:
-            key, entry = self.createEntry()
-            self.setEntrySessionKey(key)
-        return entry
-    __call__ = lookup
+        key = md5(tgt.__module__+':'+tgt.__name__)
+        # use only 1/2 of the digits
+        key = key.digest()[:9] 
+        key = key.encode('base64').rstrip()
+        self.uniqueAttrKey = key
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    def _initSession(self, sessionKey, session):
-        self.sessionKey = sessionKey
-        self.session = session
-    def getEntrySessionKey(self):
-        return self.session.get(self.sessionKey)
-    def setEntrySessionKey(self, key):
-        self.session[self.sessionKey] = key
-        return key
+    def bindLookup(self, session):
+        def lookup(orCreate=True):
+            return self.lookup(session, orCreate)
+        return lookup
+
+    def lookup(self, session, orCreate=True):
+        key = session.get(self.uniqueAttrKey, None)
+        if key is not None:
+            entry = self.fetchEntry(key)
+            if entry is not None:
+                return entry
+
+        if orCreate:
+            key, entry = self.createEntry()
+            session[self.uniqueAttrKey] = key
+        return entry
+    __call__ = lookup
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -128,28 +140,29 @@ class ObjectSessionsMRU(ObjectSessions):
         return key, entry
 
     def retireEntry(self, entry):
-        print 'retire:', entry
+        pass
 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+def bindSessionFactory(session, factory, *args, **kw):
+    if kw.pop('mruSession', True):
+        objSessions = ObjectSessionsMRU(factory, *args, **kw)
+    else:
+        objSessions = ObjectSessions(factory, *args, **kw)
+    return objSessions.bindLookup(session)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class SessionComponent(WebComponent):
     ObjectSessions = ObjectSessionsMRU
+    session = None
 
-    def __init__(self, sessionKey, session, factory=None):
-        self.objSessions = self.ObjectSessions(sessionKey, session)
+    def __init__(self, factory=None, *args, **kw):
+        self.objSessions = self.ObjectSessions()
         if factory is not None:
-            self.bindFactory(factory)
-
-    def bindFactory(self, factory, *args, **kw):
-        return self.objSessions.bindFactory(factory, *args, **kw)
-    def lookup(self, orCreate=True):
-        return self.objSessions.lookup(orCreate)
+            self.objSessions.bindFactory(factory, *args, **kw)
 
     def renderHtmlOn(self, html):
-        target = self.lookup()
+        target = self.objSessions.lookup(self.session)
         html.render(target)
-
-    def updateMRU(self, interval=60, length=4):
-        return self.objSessions.udpateM(interval, length)
 

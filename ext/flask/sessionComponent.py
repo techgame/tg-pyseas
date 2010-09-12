@@ -10,17 +10,26 @@
 #~ Imports 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+import functools
 import flask
 
-from pyseas.sessionComponent import SessionComponent
+from pyseas.component import WebComponent
+from pyseas import sessionComponent as base
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Definitions 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-class FlaskSessionComponent(SessionComponent):
-    def __init__(self, sessionKey, factory=None, *args, **kw):
-        self.objSessions = self.ObjectSessions(sessionKey, flask.session)
-        if factory is not None or args or kw:
-            self.bindFactory(factory, *args, **kw)
+sessionFactory = functools.partial(base.bindSessionFactory, flask.session)
+
+def sessionProxy(factory, *args, **kw):
+    lookupFn = sessionFactory(factory, *args, **kw)
+    return flask.globals.LocalProxy(lookupFn)
+
+class FlaskComponent(WebComponent):
+    sessionProxy = classmethod(sessionProxy)
+    sessionFactory = classmethod(sessionFactory)
+
+class FlaskSessionComponent(base.SessionComponent):
+    session = flask.session
 
