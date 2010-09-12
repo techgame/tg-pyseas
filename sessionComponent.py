@@ -47,7 +47,7 @@ class ObjectSessions(object):
         # use only 1/2 of the digits
         key = key.digest()[:9] 
         key = key.encode('base64').rstrip()
-        self.uniqueAttrKey = key
+        self.uniqueAttrKey = '~pi-'+key
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
