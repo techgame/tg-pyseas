@@ -47,6 +47,13 @@ class HtmlBrushAttrs(object):
         if args or kw:
             self.update(*args, **kw)
 
+    def asBrush(self):
+        return self
+
+    def onAddedToBrush(self, parent, explicit=False):
+        parent.attrs.update(self)
+        return False
+
     def tagInstance(self, tag, multiValueKeys=None):
         self = self.copy()
         mvk = multiValueKeys

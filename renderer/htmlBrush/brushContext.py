@@ -14,6 +14,7 @@ import weakref
 import functools
 
 from .brushes import htmlTagBrushMap
+from .brushAttrs import HtmlBrushAttrs
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Definitions 
@@ -144,6 +145,15 @@ class HtmlBrushContextApiImpl(object):
         return str(self.__html__)
     def __unicode__(self): 
         return unicode(self.__html__)
+
+    @staticmethod
+    def attrs(class_=None, style=None, **attrs):
+        attrs = HtmlBrushAttrs(attrs)
+        if class_ is not None:
+            attrs['class'] = class_
+        if style is not None:
+            attrs['style'] = style
+        return attrs
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
