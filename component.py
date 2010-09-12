@@ -29,8 +29,9 @@ class WebComponentBase(object):
         return rctx.renderComponent(self)
 
     @contextmanager
-    def renderHtmlCtxOn(self, html, outer):
+    def renderCtxOn(self, v, outer):
         yield
+
     def renderHtmlOn(self, html):
         # provide a reasonable default to aid debugging
         html.div(repr(self))
@@ -44,11 +45,6 @@ class WebComponent(WebComponentBase):
             return target.renderOn(rctx)
         else:
             return rctx.renderComponent(self)
-
-    @contextmanager
-    def renderHtmlCtxOn(self, html, outer):
-        with html.renderNestedCtx(self, outer, self._decorators):
-            yield
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -67,15 +63,30 @@ class WebComponent(WebComponentBase):
     def popTarget(self):
         return self.targetStack.pop()
 
+    @contextmanager
+    def pealTarget(self, idx=-1):
+        ts = self.targetStack
+        tsSave = ts[idx:]
+        del ts[idx:]
+        try: 
+            yield
+        finally:
+            ts.extend(tsSave)
+
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    _decorators = None
-    def getDecorators(self):
-        r = self._decorators
+    @contextmanager
+    def renderCtxOn(self, v, outer):
+        with v.renderNestedCtx(self, outer, self._ctxDecorators):
+            yield
+
+    _ctxDecorators = None
+    def getCtxDecorators(self):
+        r = self._ctxDecorators
         if r is None:
-            self._decorators = r = []
+            self._ctxDecorators = r = []
         return r
-    decorators = property(getDecorators)
+    ctxDecorators = property(getCtxDecorators)
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -83,6 +94,10 @@ class WebComponent(WebComponentBase):
     def call(self, item, onAnswer=None):
         if onAnswer is None:
             onAnswer = self.onAnswer
+        elif isinstance(onAnswer, basestring):
+            attrName = onAnswer
+            onAnswer = lambda value:(setattr, attrName, value)
+
         item = item.asCalledOn(self, onAnswer)
         if item is not None:
             return self.pushTarget(item)
@@ -96,10 +111,24 @@ class WebComponent(WebComponentBase):
         if self.target is not None:
             return self.target.answer(*args, **kw)
 
-        atgt, onAnswer = self._answerTarget
+        answerTgt, onAnswer = self._answerTarget
         self._answerTarget = None
-        atgt.popTarget()
+        answerTgt.popTarget()
         return onAnswer(*args, **kw)
+
+    def isAnswerable(self):
+        return self._answerTarget is not None
+
+    @contextmanager
+    def pealAnswer(self):
+        answerTgt, onAnswer = self._answerTarget
+        self._answerTarget = None
+        try:
+            with answerTgt.pealTarget():
+                yield answerTgt
+        finally:
+            self._answerTarget = answerTgt, onAnswer
+
     def asCalledOn(self, answerTarget, onAnswer):
         self._answerTarget = (answerTarget, onAnswer)
         return self

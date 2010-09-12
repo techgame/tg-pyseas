@@ -45,24 +45,26 @@ class HtmlRenderer(BaseRenderer, HtmlBrushContextApiMixin):
     #~ visitor concrete implementations ~~~~~~~~~~~~~~~~~ 
 
     def _performRenderPage(self, page):
-        with page.renderHtmlCtxOn(self, self.decorators):
+        with page.renderCtxOn(self, self.decorators):
             r = page.renderHtmlOn(self)
             r = self.handleRenderResult(r)
         return r
 
     def _performRenderComponent(self, component):
-        with component.renderHtmlCtxOn(self, self.decorators):
+        with component.renderCtxOn(self, self.decorators):
             r = component.renderHtmlOn(self)
             r = self.handleRenderResult(r)
         return r
 
-    def renderNestedCtx(self, target, outer=None, inner=None):
-        lst = []
-        if outer: lst.extend(outer)
-        if inner: lst.extend(inner)
+    @contextlib.contextmanager
+    def usingDecorators(self, decorators):
+        prev = self.decorators
+        self.decorators = decorators
+        yield
+        self.decorators = prev
 
-        lst = [c.renderHtmlCtxTargetOn(self, target) for c in lst]
-        return contextlib.nested(*lst)
+    def _bindNestedCtx(self, target, ctxList):
+        return [c.renderCtxHtmlOn(self, target) for c in ctxList]
 
     def inBrushRenderCtx(self, obj):
         return self._brushCtx.inBrushRenderCtx(obj)

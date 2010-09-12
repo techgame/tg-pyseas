@@ -10,6 +10,8 @@
 #~ Imports 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+from contextlib import contextmanager
+
 from .component import WebComponentBase
 from .listComponent import WebListPartsMixin
 
@@ -62,6 +64,13 @@ class WebPageComponent(WebListPartsMixin, WebComponentBase):
         pass
     def renderPageBodyOn(self, html):
         self.renderParts(html)
+
+    @contextmanager
+    def renderCtxOn(self, v, outer):
+        with v.usingDecorators(self.ctxDecorators):
+            with v.renderNestedCtx(self, outer):
+                yield
+    ctxDecorators = None
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

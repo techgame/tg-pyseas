@@ -10,6 +10,7 @@
 #~ Imports 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+import contextlib
 from .renderContext import WebRenderContext
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -28,6 +29,9 @@ class AbstractRenderer(object):
         raise NotImplementedError('Subclass Responsibility: %r' % (self,))
 
     def result(self, **kw):
+        raise NotImplementedError('Subclass Responsibility: %r' % (self,))
+
+    def renderNestedCtx(self, target, outer=None, inner=None):
         raise NotImplementedError('Subclass Responsibility: %r' % (self,))
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -51,4 +55,15 @@ class BaseRenderer(AbstractRenderer):
         if getattr(item, 'isWebComponent', bool)():
             return self.render(item)
         else: return item
+
+    def renderNestedCtx(self, target, outer=None, inner=None):
+        ctxList = []
+        if outer: ctxList.extend(outer)
+        if inner: ctxList.extend(inner)
+
+        ctxList = self._bindNestedCtx(target, ctxList)
+        return contextlib.nested(*ctxList)
+
+    def _bindNestedCtx(self, target, ctxList):
+        return ctxList
 
