@@ -55,6 +55,8 @@ class WebViewContextBase(RequestContextDispatch):
 
     def _renderComponentView(self, request, renderCtx, nsCtx):
         root = self.findRootForRequest(request, nsCtx)
+        if not getattr(root, 'isWebComponent', bool)():
+            return root
         return renderCtx.render(root)
     def _renderCallbackView(self, request, renderCtx, cbResult):
         return renderCtx.autoRender(cbResult)
