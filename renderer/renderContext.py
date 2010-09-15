@@ -32,9 +32,21 @@ class WebRenderContext(object):
 
         self._initContext(request)
 
+    #~ context utilities ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
     def _initContext(self, request):
         self.request = request
         self.selected = set()
+
+    _idxCounter = 0
+    def nextIdx(self, prefix=None):
+        idx = self._idCounter
+        self._idCounter = idx+1
+        if prefix is None:
+            return idx
+        return '%s%s'%(prefix, idx)
+
+    #~ render visitng ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     def render(self, root):
         if root is None: return
