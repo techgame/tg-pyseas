@@ -62,11 +62,13 @@ class WTFormComponentBase(WebComponent):
 
         # grab attrs for rendering
         fieldAttrs = self.attrsForField(field.name, kw)
-        if order:
-            labelAttrs = self.attrsForFieldLabel(field.name, labelAttrs)
+        labelAttrs = self.attrsForFieldLabel(field.name, labelAttrs)
 
         if order > 0:
             html.raw(field.label(**labelAttrs))
+        elif order == 0:
+            if labelAttrs.get('br', False):
+                html.br()
 
         html.raw(field(**fieldAttrs))
 
