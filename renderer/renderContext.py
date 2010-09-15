@@ -40,8 +40,8 @@ class WebRenderContext(object):
 
     _idxCounter = 0
     def nextIdx(self, prefix=None):
-        idx = self._idCounter
-        self._idCounter = idx+1
+        idx = self._idxCounter
+        self._idxCounter = idx+1
         if prefix is None:
             return idx
         return '%s%s'%(prefix, idx)
