@@ -17,7 +17,7 @@ from pyseas.renderer import WebRenderContext
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 def testHtmlRenderer():
-    wrc = WebRenderContext(None)
+    wrc = WebRenderContext(None, None)
     html = wrc.createRenderer()
 
     with html.div():
@@ -31,7 +31,7 @@ def testHtmlRenderer():
         'implicit and explicit<i>tags</i></p><a>link</a></div>'), r
 
 def testHtmlEmptyDiv():
-    wrc = WebRenderContext(None)
+    wrc = WebRenderContext(None, None)
     html = wrc.createRenderer()
     with html.div(): pass
 

@@ -49,7 +49,7 @@ class WebViewContextBase(RequestContextDispatch):
         if clear: 
             cbRegistry.clear()
 
-        return self.RenderContext(cbRegistry)
+        return self.RenderContext(request, cbRegistry)
 
     #~ Render dispatch extension points ~~~~~~~~~~~~~~~~~
 

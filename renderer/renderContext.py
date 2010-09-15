@@ -20,7 +20,7 @@ class WebRenderContext(object):
     outputKey = 'html'
     renderer = None
 
-    def __init__(self, cbRegistry, outputKey=None):
+    def __init__(self, request, cbRegistry, outputKey=None):
         if cbRegistry is True:
             cbRegistry = self.createCallbackRegistry()
         self.cbRegistry = cbRegistry
@@ -30,9 +30,10 @@ class WebRenderContext(object):
                 raise LookupError("No render factories registered for key: %r"%(outputKey,), outputKey)
             self.outputKey = outputKey
 
-        self._initContext()
+        self._initContext(request)
 
-    def _initContext(self):
+    def _initContext(self, request):
+        self.request = request
         self.selected = set()
 
     def render(self, root):
