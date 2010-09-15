@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
 ##~ Copyright (C) 2002-2010  TechGame Networks, LLC.              ##
 ##~                                                               ##
@@ -12,6 +13,8 @@
 
 from functools import partial
 from contextlib import contextmanager
+
+from .adaptor import componentAdaptorMap, adaptItemAsComponent
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Definitions 
@@ -128,18 +131,12 @@ class WebComponent(WebComponentBase, AnswerableMixin):
 
         asCalledOn = getattr(callItem, 'asCalledOn', None)
         if asCalledOn is None:
-            asCalledOn = self.adaptCallTarget(callItem)
+            pxy = self.itemAsComponent(callItem)
+            asCalledOn = pxy.asCalledOn
 
         target = asCalledOn(self, onAnswer)
         if target is not None:
             return self.pushTarget(target)
-
-    def adaptCallTarget(self, callItem):
-        if callable(callItem):
-            pxy = WebProxyComponent(callItem)
-            return pxy.asCalledOn
-
-        raise ValueError("Expected item to be a WebComponent or callable")
 
     answered = NotImplemented
     def onAnswer(self, value=None):
@@ -149,6 +146,19 @@ class WebComponent(WebComponentBase, AnswerableMixin):
         if self.target is not None:
             return self.target.answer(*args, **kw)
         return AnswerableMixin.answer(self, *args, **kw)
+
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    _itemAdaptorMap = componentAdaptorMap
+
+    @classmethod
+    def registerAsAdaptorFor(klass, *keys):
+        res = dict.fromkeys(keys, klass)
+        klass._itemAdaptorMap.update(res)
+        return res
+
+    def itemAsComponent(self, item, default=NotImplemented):
+        return adaptItemAsComponent(item, default, self._itemAdaptorMap)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -166,4 +176,6 @@ class WebProxyComponent(WebComponent):
         if not name.startswith('_'):
             return self._proxyItem_
         return super(WebProxyComponent, self).__getattr__(name)
+
+WebProxyComponent.registerAsAdaptorFor(callable)
 
