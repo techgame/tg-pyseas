@@ -40,7 +40,7 @@ forceQuoteChars = u">\"'=&?/; \t\r\n\u000C"
 forceQuoteMapping = dict.fromkeys(map(ord, forceQuoteChars), '-')
 
 def mustQuoteAttrValue(value):
-    return bool(codecs.charmap_encode(value, 'ignore', forceQuoteMapping)[0])
+    return not value or bool(codecs.charmap_encode(value, 'ignore', forceQuoteMapping)[0])
 
 class entity_charmap_codec(dict):
     def __missing__(self, char): 

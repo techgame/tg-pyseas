@@ -38,3 +38,11 @@ def testHtmlEmptyDiv():
     r = html.result()
     assert r == '<div></div>'
 
+def testHtmlEmptyDivClass():
+    wrc = WebRenderContext(None, None)
+    html = wrc.createRenderer()
+    html.div(class_='', key='')
+
+    r = html.result()
+    assert r == '<div key=""></div>'
+

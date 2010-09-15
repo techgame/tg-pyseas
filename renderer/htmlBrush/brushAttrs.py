@@ -100,14 +100,18 @@ class HtmlBrushAttrs(object):
         ns = self._ns
         if key in ns:
             value = sep.join([ns[key], value])
-        ns[key] = value
+        if value: ns[key] = value
+        else: ns.pop(key, None)
         return value
     def discard(self, key, value, sep=None):
         if sep is None:
             sep = self._multiValueKeys.get(key)
         r = self[key].split(sep)
         r[:] = [e for e in r if e != value]
-        r = sep.join(r)
+
+        ns = self._ns
+        if r: ns[key] = sep.join(r)
+        else: ns.pop(key, None)
         return r
 
     def update(self, *args, **kw):
@@ -145,12 +149,15 @@ class HtmlBrushAttrs(object):
     def __setitem__(self, key, value):
         ns = self._ns
         key = self.asKey(key)
-        if key in ns:
-            # check for multi-value keys (usually space seperated)
-            sep = self._multiValueKeys.get(key)
-            if sep:
-                value = sep.join(ns[key], value)
-        ns[key] = value
+        # check for multi-value keys (usually space seperated)
+        sep = self._multiValueKeys.get(key)
+        if not sep:
+            ns[key] = value
+        else:
+            if key in ns:
+                value = sep.join([ns[key], value])
+            if value: ns[key] = value
+            else: ns.pop(key, None)
     def __delitem__(self, key):
         key = self.asKey(key)
         self._ns.pop(key, None)
