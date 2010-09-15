@@ -10,6 +10,7 @@
 #~ Imports 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+from functools import partial
 from contextlib import contextmanager
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -38,7 +39,34 @@ class WebComponentBase(object):
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-class WebComponent(WebComponentBase):
+class AnswerableMixin(object):
+    def isAnswerable(self):
+        return self._answerTarget is not None
+
+    _answerTarget = None
+    def answer(self, *args, **kw):
+        answerTgt, onAnswer = self._answerTarget
+        self._answerTarget = None
+        answerTgt.popTarget()
+        return onAnswer(*args, **kw)
+
+    @contextmanager
+    def pealAnswer(self):
+        answerTgt, onAnswer = self._answerTarget
+        self._answerTarget = None
+        try:
+            with answerTgt.pealTarget():
+                yield answerTgt
+        finally:
+            self._answerTarget = answerTgt, onAnswer
+
+    def asCalledOn(self, answerTarget, onAnswer):
+        self._answerTarget = (answerTarget, onAnswer)
+        return self
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+class WebComponent(WebComponentBase, AnswerableMixin):
     def renderOn(self, rctx):
         target = self.target
         if target is not None:
@@ -91,45 +119,51 @@ class WebComponent(WebComponentBase):
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     _targetStack = None
-    def call(self, item, onAnswer=None):
+    def call(self, callItem, onAnswer=None):
         if onAnswer is None:
             onAnswer = self.onAnswer
         elif isinstance(onAnswer, basestring):
             attrName = onAnswer
             onAnswer = lambda value:(setattr, attrName, value)
 
-        item = item.asCalledOn(self, onAnswer)
-        if item is not None:
-            return self.pushTarget(item)
+        asCalledOn = getattr(callItem, 'asCalledOn', None)
+        if asCalledOn is None:
+            asCalledOn = self.adaptCallTarget(callItem)
+
+        target = asCalledOn(self, onAnswer)
+        if target is not None:
+            return self.pushTarget(target)
+
+    def adaptCallTarget(self, callItem):
+        if callable(callItem):
+            pxy = WebProxyComponent(callItem)
+            return pxy.asCalledOn
+
+        raise ValueError("Expected item to be a WebComponent or callable")
 
     answered = NotImplemented
     def onAnswer(self, value=None):
         self.answered = value
 
-    _answerTarget = None
     def answer(self, *args, **kw):
         if self.target is not None:
             return self.target.answer(*args, **kw)
+        return AnswerableMixin.answer(self, *args, **kw)
 
-        answerTgt, onAnswer = self._answerTarget
-        self._answerTarget = None
-        answerTgt.popTarget()
-        return onAnswer(*args, **kw)
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    def isAnswerable(self):
-        return self._answerTarget is not None
+class WebProxyComponent(WebComponent):
+    def __init__(self, item):
+        self._proxyItem_ = item
 
-    @contextmanager
-    def pealAnswer(self):
-        answerTgt, onAnswer = self._answerTarget
-        self._answerTarget = None
-        try:
-            with answerTgt.pealTarget():
-                yield answerTgt
-        finally:
-            self._answerTarget = answerTgt, onAnswer
+    def renderHtmlOn(self, html):
+        return self._proxyItem_(html)
 
-    def asCalledOn(self, answerTarget, onAnswer):
-        self._answerTarget = (answerTarget, onAnswer)
-        return self
+    def __call__(self, *args, **kw):
+        return self._proxyItem_(*args, **kw)
+
+    def __getattr__(self, name):
+        if not name.startswith('_'):
+            return self._proxyItem_
+        return super(WebProxyComponent, self).__getattr__(name)
 

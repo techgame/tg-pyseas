@@ -39,6 +39,9 @@ class TrialComponent(WebComponent):
     def renderBody_stateB(self, html):
         html.text('stateB method')
 
+    def renderFunction(self, html):
+        html.text('function')
+
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 def testComponentSlot():
@@ -71,4 +74,11 @@ def testComponentSlotState():
 
     del c.body.state
     assert c.render() == "body method"
+
+def testComponentSlotFunctionTarget():
+    c = TrialComponent()
+    assert c.render() == "body method"
+
+    c.call(c.renderFunction)
+    assert c.render() == "function"
 
