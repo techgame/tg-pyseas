@@ -30,5 +30,8 @@ class UrlToolsMixin(object):
         return self.newUrlQuery(_url_, self.urlencode(kw))
 
     def newUrlQuery(self, url, query):
-        return url.split('?', 1)[0]+'?'+query
+        url = url.split('?', 1)[0]
+        if query:
+            url += '?'+query
+        return url
 
