@@ -36,6 +36,5 @@ def testHtmlEmptyDiv():
     with html.div(): pass
 
     r = html.result()
-    print r
-    assert r == ('<div></div>')
+    assert r == '<div></div>'
 

@@ -13,6 +13,7 @@
 from .component import WebComponent, WebComponentBase
 from .listComponent import WebListComponent
 from .pageComponent import WebPageComponent
+from .propertyComponent import PropertyComponent, ComponentSlot
 from .sessionComponent import ObjectSessions, SessionComponent
 
 from .utils import url_attrs
