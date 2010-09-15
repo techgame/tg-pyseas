@@ -15,12 +15,13 @@ import functools
 
 from .brushes import htmlTagBrushMap
 from .brushAttrs import HtmlBrushAttrs
+from .urlTools import UrlToolsMixin
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Definitions 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-class CallbackRegistryMixin(object):
+class CallbackRegistryMixin(UrlToolsMixin):
     #~ callback registry accessors ~~~~~~~~~~~~~~~~~~~~~~
 
     def bind(self, callback, *args, **kw):
