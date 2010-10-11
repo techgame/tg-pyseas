@@ -25,6 +25,39 @@ def url_attrs(*args, **kw):
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+class IdCounters(object):
+    fmt = '%s-%s'
+    def __init__(self, fmt=None):
+        if fmt is not None:
+            self.fmt = fmt
+        self._db = {}
+
+    def counter(self, prefix, idx=0):
+        fmt = self.fmt
+        while 1:
+            yield fmt%(prefix, idx)
+            i += 1
+
+    def __contains__(self, key):
+        return key in self._db
+    def get(self, key, default=None):
+        v = self._db.get(key)
+        if v is None:
+            return default
+        else: return v()
+    def __getitem__(self, key):
+        v = self._db.get(key)
+        if v is None:
+            v = self.counter(key, idx).next
+            self._db[key] = v
+        return v()
+    def __getattr__(self, key):
+        return self[key]
+    def __call__(self, key):
+        return self[key]
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 class objectmethod(object):
     factory = types.MethodType
 

@@ -11,6 +11,7 @@
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 from contextlib import contextmanager
+from pyseas.utils import IdCounters
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Definitions 
@@ -37,6 +38,7 @@ class WebRenderContext(object):
     def _initContext(self, request):
         self.request = request
         self.selected = set()
+        self.idc = IdCounters()
 
     _idxCounter = 0
     def nextIdx(self, prefix=None):
