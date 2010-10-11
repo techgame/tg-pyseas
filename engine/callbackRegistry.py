@@ -10,21 +10,30 @@
 #~ Imports 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+import time
+
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Definitions 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+def generationId(d=300, m=60*60*19*31):
+    return int((time.time() % m)/d)
 
 class WebCallbackRegistry(object):
     url = ''
     fmtUrl = '{0}?ci={1}'
 
     def __init__(self, url=None, fmtUrl=None):
+        self.gen = self.newGenerationId()
         self.db = {}
         if url is not None:
             self.url = url
         if fmtUrl is not None:
             fmtUrl.format(self.url, 'rid')
             self.fmtUrl = fmtUrl
+
+    def newGenerationId(self):
+        return 1024*generationId()
 
     def addCallback(self, callback):
         if not callable(callback):
@@ -41,14 +50,25 @@ class WebCallbackRegistry(object):
             raise ValueError("Expected a callable object")
 
         if hasattr(callback, 'im_func'):
-            cid = hash((callback.im_func, callback.im_self))
-        else: cid = id(callback)
+            cbKey = hash((callback.im_func, callback.im_self))
+        else: cbKey = id(callback)
 
-        return str(abs(cid))
+        return self.ciNext(cbKey)
+
+    _cidx = 0
+    def ciNext(self, cbKey):
+        ci = self.db.get(cbKey)
+        if ci is None:
+            ci = self._cidx
+            self._cidx = ci+1
+            ci = '%x.%x'%(self.gen, ci)
+            self.db[cbKey] = ci
+        return ci
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     def clear(self):
+        self.gen += 1
         self.db.clear()
 
     def find(self, kwargs, default=False):
