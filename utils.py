@@ -36,7 +36,7 @@ class IdCounters(object):
         fmt = self.fmt
         while 1:
             yield fmt%(prefix, idx)
-            i += 1
+            idx += 1
 
     def __contains__(self, key):
         return key in self._db
@@ -48,7 +48,7 @@ class IdCounters(object):
     def __getitem__(self, key):
         v = self._db.get(key)
         if v is None:
-            v = self.counter(key, idx).next
+            v = self.counter(key).next
             self._db[key] = v
         return v()
     def __getattr__(self, key):
