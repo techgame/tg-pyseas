@@ -87,7 +87,7 @@ class ComponentSlot(object):
         if init is not None:
             init(self)
 
-    def method(self, state=None):
+    def method(self, state=None, fn=None):
         """Bind a method for state for the property component's render method"""
         if isinstance(state, FunctionType):
             self.methodMap[None] = state
@@ -96,7 +96,10 @@ class ComponentSlot(object):
         def decorator(fn):
             self.methodMap[state] = fn
             return fn
-        return decorator
+
+        if fn is not None:
+            return decorator(fn)
+        else: return decorator
 
     #~ property protocol ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
