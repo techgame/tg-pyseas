@@ -340,8 +340,10 @@ class NothingBrush(object):
 
 class IsolatedBrush(HtmlListBaseBrush):
     def initBrush(self, args, kw): pass
-    def onAddedToBrush(self, parent, explicit=False): pass
-    def orphan(self): pass
+    def onAddedToBrush(self, parent, explicit=False): 
+        if explicit:
+            self.parent = weakref.ref(parent)
+            return True
 
     def acceptHtmlBrushVisitor(self, htmlVis):
         htmlVis.extend(self.elements)

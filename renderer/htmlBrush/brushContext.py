@@ -76,16 +76,19 @@ class HtmlBrushContext(CallbackRegistryMixin):
         return brush(*args, **kw)
 
     def inBrushRenderCtx(self, obj):
-        top = self.topBrush()
+        top = self.topBrush(False)
         if top is None:
             return NullContextManager()
         return top.inBrushRenderCtx(obj)
 
     #~ brush context stack ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    def topBrush(self):
+    _currentBrush = None
+    def topBrush(self, orLast=True):
         stack = self._brushStack
         if stack: return stack[-1]
+        if orLast:
+            return self._currentBrush
 
     def pushBrush(self, brush=None):
         self._brushStack.append(brush)
@@ -96,9 +99,8 @@ class HtmlBrushContext(CallbackRegistryMixin):
         self._currentBrush = brush
         return brush
 
-    _currentBrush = None
     def onBrushCreated(self, brush):
-        tb = self.topBrush()
+        tb = self.topBrush(False)
         if tb is not None:
             tb.addImplicitBrush(brush)
         self._currentBrush = brush
@@ -106,14 +108,8 @@ class HtmlBrushContext(CallbackRegistryMixin):
 
     #~ results ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    def resultBrush(self):
-        last = self.topBrush()
-        if last is None:
-            last = self._currentBrush
-        return last
-
     def __html__(self):
-        return self.resultBrush().__html__()
+        return self.topBrush(True).__html__()
 
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -172,4 +168,13 @@ class HtmlBrushContextApiMixin(HtmlBrushContextApiImpl, CallbackRegistryMixin):
         return self._brushCtx.bindBrush(tag)
     def createBrush(self, tag, *args, **kw):
         return self._brushCtx.createBrush(tag, *args, **kw)
+
+    def topBrush(self, orLast=True):
+        return self._brushCtx.topBrush(orLast)
+    def addBrush(self, brush):
+        return self.topBrush().addBrush(brush)
+    def addItem(self, item):
+        return self.topBrush().addItem(item)
+    def addAttrs(self, attrs):
+        return self.topBrush().addAttrs(attrs)
 
