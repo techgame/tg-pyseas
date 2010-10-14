@@ -291,13 +291,16 @@ class HtmlDoctype(HtmlBaseBrush):
         htmlVis.doctype(self.name, self.publicId, self.systemId)
 
 
-class HtmlDocument(HtmlListBaseBrush):
+class HtmlCollection(HtmlListBaseBrush):
     def initBrush(self, elems, kw):
         if elems:
             self.extend(elems)
 
     def acceptHtmlBrushVisitor(self, htmlVis):
         htmlVis.extend(self.elements)
+
+class HtmlDocument(HtmlCollection):
+    pass
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Raw Brushes for HTML Source
@@ -389,6 +392,7 @@ htmlUtilityTagBrushMap = dict(
     nothing = NothingBrush,
     isolated = IsolatedBrush,
 
+    collection = HtmlCollection,
     document = HtmlDocument,
     doctype = HtmlDoctype,
 
