@@ -112,13 +112,8 @@ class HtmlBrushContext(CallbackRegistryMixin):
             last = self._currentBrush
         return last
 
-    def resultXMLString(self, **kw):
-        last = self.resultBrush()
-        return last.asXMLString(**kw)
-
     def __html__(self):
-        last = self.resultBrush()
-        return last.__html__()
+        return self.resultBrush().__html__()
 
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

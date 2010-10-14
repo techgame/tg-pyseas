@@ -36,7 +36,7 @@ class HtmlBaseBrush(object):
         return '<%s %s>' % (self.__class__.__name__, self.tag)
 
     def new(self, *args, **kw):
-        return self.__class__(None, self.tag, *args, **kw)
+        return self.__class__(self._bctx, self.tag, *args, **kw)
     def copy(self):
         raise NotImplementedError("Copy not implemented for %s"%(self.__class__.__name__,))
 
@@ -348,10 +348,9 @@ class IsolatedBrush(HtmlListBaseBrush):
 
     @contextmanager
     def inBrushRenderCtx(self, obj):
-        # clear isolated brush elements to give rendered
-        # context object a clean slate
-        self.clearElements()
-        yield self
+        # create new sub-isolated context for a clean slate
+        with self.new() as b:
+            yield b
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ HTML Brush Tags 
