@@ -81,12 +81,13 @@ class HtmlRenderer(BaseRenderer, HtmlBrushContextApiMixin):
         return self.__html__()
 
     def __html__(self):
-        last = self._brushCtx.resultBrush()
-        return last.__html__()
+        return self._brushCtx.__html__()
 
     def handleRenderResult(self, r):
         if r in (None, True, False): return r
 
+        if getattr(r, 'isWebComponent', bool)():
+            return r
         if hasattr(r, '__html__'):
             self.raw(r)
         elif isinstance(r, basestring):
@@ -97,7 +98,7 @@ class HtmlRenderer(BaseRenderer, HtmlBrushContextApiMixin):
         if getattr(item, 'isWebComponent', bool)():
             return self.render(item)
         else:
-            return self._brushCtx.topBrush().addItem(item)
+            return self.addItem(item)
 
     def __call__(self, tag, *args, **kw):
         if hasattr(tag, 'isWebComponent'):
