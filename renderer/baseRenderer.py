@@ -56,11 +56,10 @@ class BaseRenderer(AbstractRenderer):
             return self.render(item)
         else: return item
 
-    def renderNestedCtx(self, target, outer=None, inner=None):
+    def renderNestedCtx(self, target, *ctxListArgs):
         ctxList = []
-        if outer: ctxList.extend(outer)
-        if inner: ctxList.extend(inner)
-
+        for e in ctxListArgs:
+            if e: ctxList.extend(e)
         ctxList = self._bindNestedCtx(target, ctxList)
         return contextlib.nested(*ctxList)
 
