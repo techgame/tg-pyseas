@@ -103,9 +103,16 @@ class HtmlRenderer(BaseRenderer, HtmlBrushContextApiMixin):
     def __call__(self, tag, *args, **kw):
         if hasattr(tag, 'isWebComponent'):
             return self.render(tag)
+        if callable(tag):
+            return self.call(tag, *args, **kw)
 
         return self.createBrush(tag, *args, **kw)
 
+    def call(self, fn, *args, **kw):
+        with self.collection() as brush:
+            r = fn(self, *args, **kw)
+            if r is None: r = brush
+            return r
 
 HtmlRenderer.registerRenderFactory('html', 'html5', 'xhtml')
 
