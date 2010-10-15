@@ -109,7 +109,7 @@ class HtmlRenderer(BaseRenderer, HtmlBrushContextApiMixin):
         return self.createBrush(tag, *args, **kw)
 
     def call(self, fn, *args, **kw):
-        with self.collection() as brush:
+        with self.inBrushRenderCtx(None) as brush:
             r = fn(self, *args, **kw)
             if r is None: r = brush
             return r
