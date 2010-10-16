@@ -18,18 +18,6 @@ from pyseas.component import WebComponentBase, WebComponent
 #~ Definitions 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-fmtAjaxTargetJS = '''
-var ctx_{key}_url = "{url}";
-function ctx_{key}_join(key, action, args) {{
-  var E = encodeURIComponent;
-  var r = [ctx_{key}_url, "{key}="+E(key), "_a="+E(action)]
-  if (args) for (var k in args) r.push(E(k)+"="+E(args[k]))
-  return r.join("&")
-}}
-'''
-
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 class AjaxResponse(WebComponentBase):
     def __init__(self, tgtMap, tgtResponse):
         self.tgtMap = tgtMap
@@ -46,7 +34,10 @@ class AjaxResponse(WebComponentBase):
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class AjaxComponentDispatch(object):
-    fmtAjaxTargetJS = fmtAjaxTargetJS
+    fmtAjaxTargetJS = '''
+        var ctxUrl = ctxUrl || {{}};
+        ctxUrl["{key}"] = "{url}";
+    '''
     key = 'oid'
 
     def __init__(self, html, key=None):
@@ -97,18 +88,19 @@ class AjaxComponentDispatch(object):
             return None
 
         if oid is None:
-            oid = str(len(self.db))
+            oid = '%s-%s'%(self.key, len(self.db))
         self.db[oid] = tgt
         return oid
 
     def ajaxAction(self, kwargs):
-        oid = kwargs.pop('oid')
-        action = kwargs.pop('_a')
+        kwargs = dict(kwargs.iteritems())
+        kwargs.pop('!')
+        oid = kwargs.pop('!x')
         tgt = self.db[oid]
         if tgt is None:
             return AjaxResponse(self, None)
 
-        res = tgt.ajaxAction(action, oid, kwargs)
+        res = tgt.ajaxAction(oid, None, kwargs)
         if not getattr(res, 'isWebComponent', bool)():
             res = tgt.itemAsComponent(res)
 
@@ -123,4 +115,15 @@ def ajaxContext():
 
 class AjaxWebComponent(WebComponent):
     ctxDecorators = [ajaxContext()]
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+jsAjaxUtilities = '''
+function ctxJoin(key, args) {
+  var E = encodeURIComponent;
+  var r = [ctxUrl[key.split('-')[0]], "!x="+E(key)];
+  if (args) for (var k in args) r.push(E(k)+"="+E(args[k]))
+  return r.join("&")
+}
+'''
 
