@@ -100,7 +100,7 @@ class AjaxComponentDispatch(object):
         if tgt is None:
             return AjaxResponse(self, None)
 
-        res = tgt.ajaxAction(oid, None, kwargs)
+        res = tgt.ajaxAction(kwargs)
         if not getattr(res, 'isWebComponent', bool)():
             res = tgt.itemAsComponent(res)
 
@@ -115,6 +115,9 @@ def ajaxContext():
 
 class AjaxWebComponent(WebComponent):
     ctxDecorators = [ajaxContext()]
+
+    def ajaxAction(self, kwargs):
+        return self
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
