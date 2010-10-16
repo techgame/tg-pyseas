@@ -11,6 +11,7 @@
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 import time
+from functools import partial
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Definitions 
@@ -24,8 +25,10 @@ class WebCallbackRegistry(object):
     fmtUrl = '{0}?ci={1}'
 
     def __init__(self, url=None, fmtUrl=None):
-        self.gen = self.newGenerationId()
-        self.db = {}
+        self.gen0 = self.newGenerationId()
+        self.gen = self.gen0-1
+        self.clear()
+
         if url is not None:
             self.url = url
         if fmtUrl is not None:
@@ -35,13 +38,13 @@ class WebCallbackRegistry(object):
     def newGenerationId(self):
         return 1024*generationId()
 
-    def addCallback(self, callback):
+    def addCallback(self, callback, addRequestArgs=False):
         if not callable(callback):
             raise ValueError("Expected a callable object")
 
         cid = self.dbKeyForCallback(callback)
         cbUrl = self.fmtUrl.format(self.url, cid)
-        self.db[cid] = callback
+        self.db[cid] = callback, addRequestArgs
         return cbUrl
     add = addCallback
 
@@ -69,13 +72,19 @@ class WebCallbackRegistry(object):
 
     def clear(self):
         self.gen += 1
-        self.db.clear()
+        self.db = {}
+        self.shared = {}
 
     def find(self, kwargs, default=False):
         cid = kwargs.get('ci')
         if cid is None:
             return None
-        return self.db.get(cid, default)
+        cb, addArgs = self.db.get(cid, (default, False))
+        if addArgs:
+            kw = dict(kwargs.iteritems())
+            del kw['ci']
+            cb = partial(cb, kw)
+        return cb
     
     def callback(self, kwargs):
         callback = self.find(kwargs)

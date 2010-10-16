@@ -11,7 +11,7 @@
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 import weakref
-import functools
+from functools import partial
 
 from .brushes import htmlTagBrushMap
 from .brushAttrs import HtmlBrushAttrs
@@ -26,11 +26,11 @@ class CallbackRegistryMixin(UrlToolsMixin):
 
     def bind(self, callback, *args, **kw):
         if args or kw:
-            callback = functools.partial(callback, *args, **kw)
+            callback = partial(callback, *args, **kw)
         return self.callbackUrl(callback)
 
-    def callbackUrl(self, callback):
-        return self._cbRegistry.addCallback(callback)
+    def callbackUrl(self, callback, addRequestArgs=False):
+        return self._cbRegistry.addCallback(callback, addRequestArgs)
     callback = callbackUrl
 
     def callbackUrlAttrs(self, callback, **tagAttrs):
@@ -69,7 +69,7 @@ class HtmlBrushContext(CallbackRegistryMixin):
         brush = self.tagBrushMap.get(tag)
         if brush is None:
             raise LookupError("Brush %r not found"%(tag,), tag)
-        return functools.partial(brush, self._wr, tag)
+        return partial(brush, self._wr, tag)
 
     def createBrush(self, tag, *args, **kw):
         brush = self.bindBrush(tag)

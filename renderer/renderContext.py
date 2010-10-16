@@ -35,18 +35,25 @@ class WebRenderContext(object):
 
     #~ context utilities ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+    pageHeader = None
     def _initContext(self, request):
+        self.shared = self.cbRegistry.shared
+        self.db = {}
         self.request = request
         self.selected = set()
         self.idc = IdCounters()
 
-    _idxCounter = 0
-    def nextIdx(self, prefix=None):
-        idx = self._idxCounter
-        self._idxCounter = idx+1
-        if prefix is None:
-            return idx
-        return '%s%s'%(prefix, idx)
+    # mini dictonary interface
+    def get(self, key, default=None):
+        return self.db.get(key, default)
+    def __contains__(self, key):
+        return key in self.db
+    def __getitem__(self, key):
+        return self.db[key]
+    def __setitem__(self, key, value):
+        self.db[key] = value
+    def __delitem__(self, key, value):
+        self.db.pop(key, None)
 
     #~ render visitng ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
