@@ -134,9 +134,9 @@ class HtmlBrushContextApiImpl(object):
         else: raise AttributeError(tag)
 
     def __str__(self): 
-        return str(self.__html__)
+        return str(self.__html__())
     def __unicode__(self): 
-        return unicode(self.__html__)
+        return unicode(self.__html__())
 
     @staticmethod
     def attrs(class_=None, style=None, **attrs):
