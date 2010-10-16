@@ -40,6 +40,14 @@ class WebComponentBase(object):
         # provide a reasonable default to aid debugging
         html.div(repr(self))
 
+class WebComponentContextBase(object):
+    def isWebComponent(self):
+        return False
+
+    @contextmanager
+    def renderCtxHtmlOn(self, html, tgt):
+        yield
+
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class AnswerableMixin(object):
@@ -101,16 +109,18 @@ class WebComponent(WebComponentBase, AnswerableMixin):
 
     @contextmanager
     def renderCtxOn(self, v, outer):
-        with v.renderNestedCtx(self, outer, self._ctxDecorators):
+        with v.renderNestedCtx(self, outer, self.ctxDecorators):
             yield
 
-    _ctxDecorators = None
-    def getCtxDecorators(self):
-        r = self._ctxDecorators
+    ctxDecorators = []
+    def addCtxDecorators(self, aCtxObj):
+        r = self.__dict__.get('ctxDecorators')
         if r is None:
-            self._ctxDecorators = r = []
-        return r
-    ctxDecorators = property(getCtxDecorators)
+            # create an instance copy
+            r = list(self.ctxDecorators or [])
+            self.ctxDecorators = r
+        r.append(aCtxObj)
+        return aCtxObj
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
