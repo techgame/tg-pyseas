@@ -44,28 +44,21 @@ class WebComponentBase(object):
 
 class AnswerableMixin(object):
     def isAnswerable(self):
-        return self._answerTarget is not None
-
-    _answerTarget = None
+        return self._answerCallInfo is not None
     def answer(self, *args, **kw):
-        answerTgt, onAnswer = self._answerTarget
-        self._answerTarget = None
+        answerTgt, onAnswer = self._answerCallInfo
+        del self._answerCallInfo
         answerTgt.popTarget()
-        return onAnswer(*args, **kw)
+        onAnswer(*args, **kw)
+        return answerTgt
 
-    @contextmanager
-    def pealAnswer(self):
-        answerTgt, onAnswer = self._answerTarget
-        self._answerTarget = None
-        try:
-            with answerTgt.pealTarget():
-                yield answerTgt
-        finally:
-            self._answerTarget = answerTgt, onAnswer
-
-    def asCalledOn(self, answerTarget, onAnswer):
-        self._answerTarget = (answerTarget, onAnswer)
+    _answerCallInfo = None
+    def asCalledOn(self, answerTgt, onAnswer):
+        self._answerCallInfo = (answerTgt, onAnswer)
         return self
+    def getAnswerTarget(self):
+        return self._answerCallInfo[0]
+    answerTarget = property(getAnswerTarget)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -141,11 +134,6 @@ class WebComponent(WebComponentBase, AnswerableMixin):
     answered = NotImplemented
     def onAnswer(self, value=None):
         self.answered = value
-
-    def answer(self, *args, **kw):
-        if self.target is not None:
-            return self.target.answer(*args, **kw)
-        return AnswerableMixin.answer(self, *args, **kw)
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
