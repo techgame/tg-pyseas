@@ -253,19 +253,34 @@ class HtmlForm(HtmlTagBrush):
         method='POST', enctype='multipart/form-data')
     _callbackUrlKey = 'action'
 
+class HtmlScript(HtmlTagBrush):
+    _callbackUrlKey = 'src'
+    adaptorMap = HtmlTagBrush.adaptorMap.copy()
+    adaptorMap.update({
+        str: (lambda item,bctx: bctx.text(item, escape=False)),
+        unicode: (lambda item,bctx: bctx.text(item, escape=False)),
+        })
+
+
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Text Base Brushes
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class HtmlText(HtmlBaseBrush):
+    escape = True
     def initBrush(self, args, kw):
+        self.escape = kw.pop('escape', self.escape)
         self.text = ''.join(args)
 
     def copy(self):
-        return self.new(self.text)
+        return self.new(self.text, escape=self.escape)
 
     def acceptHtmlBrushVisitor(self, htmlVis):
-        htmlVis.cdata(self.text)
+        htmlVis.cdata(self.text, self.escape)
+
+class HtmlCData(HtmlText):
+    def acceptHtmlBrushVisitor(self, htmlVis):
+        htmlVis.cdataSection(self.text)
 
 class HtmlEntity(HtmlBaseBrush):
     entity = 'nbsp'
@@ -370,7 +385,10 @@ html5Tags = """
 
 # add default tag -> HtmlTagBrush factories for valid tags
 htmlTagBrushMap = dict((tag, HtmlTagBrush) for tag in html5Tags)
-htmlTagBrushMap.update(form = HtmlForm, )
+htmlTagBrushMap.update(
+    form = HtmlForm,
+    script = HtmlScript,
+    )
 
 html5HeadTags = """
     head title meta link noscript script style base""".split()
@@ -397,6 +415,7 @@ htmlUtilityTagBrushMap = dict(
     document = HtmlDocument,
     doctype = HtmlDoctype,
 
+    cdata = HtmlCData,
     text = HtmlText,
     space = HtmlSpace,
     entity = HtmlEntity,
