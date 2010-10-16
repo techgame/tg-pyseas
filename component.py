@@ -171,7 +171,7 @@ class WebProxyComponent(WebComponent):
         return self._proxyItem_(*args, **kw)
 
     def __getattr__(self, name):
-        if not name.startswith('_'):
+        if name.startswith('render'):
             return self._proxyItem_
         return super(WebProxyComponent, self).__getattr__(name)
 
