@@ -22,7 +22,7 @@ def generationId(d=300, m=60*60*19*31):
 
 class WebCallbackRegistry(object):
     url = ''
-    fmtUrl = '{0}?ci={1}'
+    fmtUrl = '{0}?!={1}'
 
     def __init__(self, url=None, fmtUrl=None):
         self.gen0 = self.newGenerationId()
@@ -76,14 +76,12 @@ class WebCallbackRegistry(object):
         self.shared = {}
 
     def find(self, kwargs, default=False):
-        cid = kwargs.get('ci')
+        cid = kwargs.get('!')
         if cid is None:
             return None
         cb, addArgs = self.db.get(cid, (default, False))
         if addArgs:
-            kw = dict(kwargs.iteritems())
-            del kw['ci']
-            cb = partial(cb, kw)
+            cb = partial(cb, kwargs)
         return cb
     
     def callback(self, kwargs):
