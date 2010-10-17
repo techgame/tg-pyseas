@@ -8,33 +8,76 @@
 
 (function( $, undefined) {
     var defaults = {
-        host: '.wc-ajax',
+        rootSelector: '.wc-ajax',
         ctxUrl: ctxUrl,
     }
-    function _ctxJoin(url, key, args) {
-        var r = [url, "!x="+encodeURIComponent(key)]
-        if (args) r.push($.param(args))
-        return r.join("&")
-    }
-    $.fn.pyseasCall = function(args, callback, options) {
-        if (!this.length) return this;
-        if (!$.isFunction(callback) && !options) {
-            options = callback;
-            callback = undefined;
-        }
+    var module = {
+        init: function() {
+        },
+        each: function(args, callback, options) {
+            var opts = $.extend({}, $.fn.pyseas.defaults, options)
+            return this.closest(opts.rootSelector).each(
+                function(i,elem){
+                    callback.call(this, i, elem,
+                        module.ctxUrlJoin.call(this, elem.id, args, opts.ctxUrl))
+                })
+        },
 
-        var opts = $.extend({}, $.fn.pyseasCall.defaults, options)
-        return this.closest(opts.host).each(_loadHostReplacement)
-
-        function _loadHostReplacement(i, elem) {
-            var url = _ctxJoin(opts.ctxUrl, elem.id, args);
-            function success(data) { 
-                data = $(data);
-                $(elem).replaceWith(data);
-                if (callback) callback.call(this, data)
+        call: function(args, callback, options) {
+            if (!$.isFunction(callback) && !options) {
+                options = callback;
+                callback = undefined;
             }
-            $.ajax($.extend({url:url, success:success}, opts))
-        }
+            var opts = $.extend({}, $.fn.pyseas.defaults, options)
+            return module.each.call(this, args, performCall, opts)
+
+            function performCall(i,elem,url) {
+                $.ajax($.extend({}, opts, {
+                    url:url, 
+                    success:function(data) {
+                        if (callback) callback.call(this, $(data))
+                    }
+                }))
+            }
+        },
+
+        load: function(args, callback, options) {
+            if (!$.isFunction(callback) && !options) {
+                options = callback;
+                callback = undefined;
+            }
+            var opts = $.extend({}, $.fn.pyseas.defaults, options)
+            return module.each.call(this, args, performLoad, opts)
+
+            function performLoad(i, elem, url) {
+                $.ajax($.extend({}, opts, {
+                    url:url, 
+                    success: function(data) {
+                        data = $(data)
+                        $(elem).replaceWith(data)
+                        if (callback) callback.call(this, data)
+                    }
+                }))
+            }
+        },
+
+        ctxUrlJoin: function(key, args, url) {
+            if (!url) url = $.fn.pyseas.defaults.ctxUrl
+            var r = [url, "!x="+encodeURIComponent(key)]
+            if (args) r.push($.param(args))
+            return r.join("&")
+        },
     }
-    $.fn.pyseasCall.defaults = defaults
+
+    $.fn.pyseas = function( method ) {
+        if (module[method]) {
+            return module[method].apply( this, Array.prototype.slice.call( arguments, 1 ));
+        } else if (!method || typeof method === 'object') {
+            return module.init.apply( this, arguments );
+        } else {
+            $.error( 'Method ' +  method + ' does not exist on jQuery.pyseas' );
+        }
+    };
+    $.fn.pyseas.defaults = defaults
+        
 })(jQuery);
