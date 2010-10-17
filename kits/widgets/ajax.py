@@ -24,100 +24,82 @@ class AjaxResponse(WebComponentBase):
         self.tgtResponse = tgtResponse
 
     def renderHtmlOn(self, html):
-        self.tgtMap.installInCtx(html)
         res = self.tgtResponse
+        self.tgtMap.installInCtx(html, res)
         if res is not None:
-            html.ctx['ajaxTarget'] = res
-            html.render(res)
+            with html.collection():
+                html.render(res)
         else: html.raw('')
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class AjaxComponentDispatch(object):
     fmtAjaxTargetJS = '''
-        var ctxUrl = ctxUrl || {{}};
-        ctxUrl["{key}"] = "{url}";
+        var ctxUrl = "{url}";
     '''
-    key = 'oid'
 
-    def __init__(self, html, key=None):
-        if key is not None:
-            self.key = key
-
+    def __init__(self, html):
         self.db = {}
         self.url = html.callback(self.ajaxAction, True)
 
-        js = self.fmtAjaxTargetJS.format(key=self.key, url=self.url)
+        js = self.fmtAjaxTargetJS.format(url=self.url)
         if html.ctx.pageHeader is not None:
             html.ctx.pageHeader.script(js)
         else: html.script(js)
 
-    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
     @classmethod
-    def fromContext(klass, html, key=None):
-        self = html.ctx.get((klass, key))
+    def fromContext(klass, html):
+        self = html.ctx.get(klass)
         if self is None:
-            self = klass(html, key)
+            self = klass(html)
             self.installInCtx(html)
         return self
 
-    @classmethod
-    @contextmanager
-    def renderCtxHtmlOn(klass, html, tgt):
-        self = klass.fromContext(html, klass.key)
-        oid = self.addTarget(html, tgt)
-        if oid is None:
-            yield
-            return
+    def installInCtx(self, html, res=None):
+        html.ctx[self.__class__] = self
 
-        with html.div(id=oid, class_=self.key):
-            yield
-
-    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-    def installInCtx(self, html):
-        html.ctx[(self.__class__, self.key)] = self
-
-    def addTarget(self, html, tgt, oid=None):
+    def addTarget(self, key, tgt, ajaxAction):
         # assure the target has an ajaxAction
-        tgt.ajaxAction
-
-        if tgt is html.ctx.get('ajaxTarget'):
-            # we're the target of an AjaxResponse, return sentinal
-            return None
-
-        if oid is None:
-            oid = '%s-%s'%(self.key, len(self.db))
-        self.db[oid] = tgt
-        return oid
+        oid = '%s-%s'%(key, len(self.db))
+        self.db[oid] = (tgt, ajaxAction)
+        return {'id':oid, 'class':'wc-ajax '+key}
 
     def ajaxAction(self, kwargs):
         kwargs = dict(kwargs.iteritems())
-        kwargs.pop('!')
+        kwargs.pop('!', None)
         oid = kwargs.pop('!x')
-        tgt = self.db[oid]
-        if tgt is None:
+
+        tgt, ajaxAction = self.db[oid]
+        if ajaxAction is None:
             return AjaxResponse(self, None)
 
-        res = tgt.ajaxAction(kwargs)
+        res = ajaxAction(kwargs)
         if not getattr(res, 'isWebComponent', bool)():
-            res = tgt.itemAsComponent(res)
+            if res is not None:
+                res = tgt.itemAsComponent(res)
+            else: res = tgt
 
-        if hasattr(res, 'ajaxAction'):
-            self.db[oid] = res
         return AjaxResponse(self, res)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-def ajaxContext(): 
-    return AjaxComponentDispatch
-
 class AjaxWebComponent(WebComponent):
-    ctxDecorators = [ajaxContext()]
+    ajaxKey = 'oid'
+
+    def ajaxCtx(self, html, key=None, action=None):
+        ajaxDisp = AjaxComponentDispatch.fromContext(html)
+        if key is None:
+            key = self.ajaxKey
+        if action is None:
+            action = self.ajaxAction
+        return ajaxDisp.addTarget(key, self, self.ajaxAction)
 
     def ajaxAction(self, kwargs):
         return self
+
+    def renderHtmlOn(self, html):
+        with html.div(self.ajaxCtx(html)):
+            pass
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
