@@ -33,12 +33,12 @@ class AjaxResponse(WebComponentBase):
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-class AjaxComponentDispatch(object):
+class AjaxContext(object):
     fmtAjaxTargetJS = 'var ctxUrl = "{url}";'
 
     def __init__(self, html):
         self.db = {}
-        self.url = html.callback(self.ajaxAction, True)
+        self.url = html.callback(self.ajaxDispatch, True)
 
         js = self.fmtAjaxTargetJS.format(url=self.url)
         if html.ctx.pageHeader is not None:
@@ -46,7 +46,7 @@ class AjaxComponentDispatch(object):
         else: html.script(js)
 
     @classmethod
-    def fromContext(klass, html):
+    def locate(klass, html):
         self = html.ctx.get(klass)
         if self is None:
             self = klass(html)
@@ -62,7 +62,16 @@ class AjaxComponentDispatch(object):
         self.db[oid] = (tgt, ajaxAction)
         return {'id':oid, 'class':'wc-ajax '+key}
 
-    def ajaxAction(self, kwargs):
+    def __getitem__(self, index):
+        get = self.db.get
+        if isinstance(index, basestring):
+            return get(index)[0]
+        elif hasattr(index, 'items'):
+            return type(index)((k,get(v)[0]) for k,v in index.items())
+        else:
+            return [get(v)[0] for v in index]
+
+    def ajaxDispatch(self, kwargs):
         kwargs = dict(kwargs.iteritems())
         kwargs.pop('!', None)
         oid = kwargs.pop('!x')
@@ -71,10 +80,10 @@ class AjaxComponentDispatch(object):
         if ajaxAction is None:
             return AjaxResponse(self, None)
 
-        res = ajaxAction(kwargs)
+        res = ajaxAction(self, kwargs)
         if not getattr(res, 'isWebComponent', bool)():
             if res is not None:
-                res = tgt.itemAsComponent(res)
+                res = tgt.itemAsComponent(res, None)
             else: res = tgt
 
         return AjaxResponse(self, res)
@@ -84,19 +93,19 @@ class AjaxComponentDispatch(object):
 class AjaxWebComponent(WebComponent):
     ajaxKey = 'oid'
 
-    def ajaxCtx(self, html, key=None, action=None):
-        ajaxDisp = AjaxComponentDispatch.fromContext(html)
+    def ajaxAspect(self, html, key=None, action=None):
+        axc = AjaxContext.locate(html)
         if key is None:
             key = self.ajaxKey
         if action is None:
             action = self.ajaxAction
-        return ajaxDisp.addTarget(key, self, self.ajaxAction)
+        return axc.addTarget(key, self, self.ajaxAction)
 
-    def ajaxAction(self, kwargs):
+    def ajaxAction(self, axc, kwargs):
         return self
 
     def renderHtmlOn(self, html):
-        with html.div(self.ajaxCtx(html)):
+        with html.div(self.ajaxAspect(html)):
             pass
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
