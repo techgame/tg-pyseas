@@ -10,6 +10,7 @@
 #~ Imports 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+import traceback
 from functools import partial, update_wrapper
 
 import flask
@@ -25,7 +26,11 @@ class FlaskWebViewContextBase(WebViewContextBase):
     #~ Dispatch request composed method ~~~~~~~~~~~~~~~~~
 
     def dispatchRequest(self, request=flask.request, **nsCtx):
-        return self._performDispatch(request, nsCtx)
+        try:
+            return self._performDispatch(request, nsCtx)
+        except Exception:
+            traceback.print_exc()
+            raise
 
     #~ Render dispatch extension points ~~~~~~~~~~~~~~~~~
 
