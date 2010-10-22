@@ -10,52 +10,70 @@
     var defaults = {
         rootSelector: '.wc-ajax',
         ctxUrl: ctxUrl,
+
+        /* jQuery.ajax options */
+        async: true,
+        global: false,
+        type: 'POST'
     }
     var module = {
         init: function() {
-        },
-        each: function(args, callback, options) {
-            var opts = $.extend({}, $.fn.pyseas.defaults, options)
-            return this.closest(opts.rootSelector).each(
-                function(i,elem){
-                    callback.call(this, i, elem,
-                        module.ctxUrlJoin.call(this, elem.id, args, opts.ctxUrl))
-                })
+            this.trigger('pyseasLoad', {init:true})
         },
 
-        call: function(args, callback, options) {
-            if (!$.isFunction(callback) && !options) {
+        _unpackArgs: function(args, callback, options) {
+            if ($.isFunction(args) && !callback && !options) {
+                callback = args;
+                args = undefined;
+            } else if (!$.isFunction(callback) && !options) {
                 options = callback;
                 callback = undefined;
             }
-            var opts = $.extend({}, $.fn.pyseas.defaults, options)
-            return module.each.call(this, args, performCall, opts)
+            options = $.extend({}, $.fn.pyseas.defaults, options)
+            return [args, callback, options]
+        },
 
-            function performCall(i,elem,url) {
-                $.ajax($.extend({}, opts, {
-                    url:url, 
-                    success:function(data) {
-                        if (callback) callback.call(this, $(data))
+        each: function(args, callback, options) {
+            var r = module._unpackArgs.apply(this, arguments)
+            args = r[0]; callback = r[1]; options = r[2];
+            return this.closest(options.rootSelector).each(
+                function(i,elem){
+                    var url = module.ctxUrlJoin.call(this, elem.id, args, options.ctxUrl)
+                    callback.call(this, i, elem, url)
+                })
+        },
+
+        invoke: function(args, callback, options) {
+            var r = module._unpackArgs.apply(this, arguments)
+            args = r[0]; callback = r[1]; options = r[2];
+            return module.each.call(this, args, performInvoke, options)
+
+            function performInvoke(i, elem, url) {
+                elem = $(elem)
+                $.ajax($.extend({}, options, {
+                    url:url,
+                    success:function(response) {
+                        response = $(response)
+                        if (callback) callback.call(this, response, elem)
                     }
                 }))
             }
         },
 
         load: function(args, callback, options) {
-            if (!$.isFunction(callback) && !options) {
-                options = callback;
-                callback = undefined;
-            }
-            var opts = $.extend({}, $.fn.pyseas.defaults, options)
-            return module.each.call(this, args, performLoad, opts)
+            var r = module._unpackArgs.apply(this, arguments)
+            args = r[0]; callback = r[1]; options = r[2];
+            return module.each.call(this, args, performLoad, options)
 
             function performLoad(i, elem, url) {
-                $.ajax($.extend({}, opts, {
-                    url:url, 
-                    success: function(data) {
-                        data = $(data)
-                        $(elem).replaceWith(data)
-                        if (callback) callback.call(this, data)
+                elem = $(elem)
+                $.ajax($.extend({}, options, {
+                    url:url,
+                    success: function(response) {
+                        response = $(response)
+                        elem.replaceWith(response)
+                        if (callback) callback.call(this, response, elem)
+                        response.trigger('pyseasLoad', {})
                     }
                 }))
             }

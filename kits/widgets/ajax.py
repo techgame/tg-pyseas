@@ -34,9 +34,7 @@ class AjaxResponse(WebComponentBase):
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class AjaxComponentDispatch(object):
-    fmtAjaxTargetJS = '''
-        var ctxUrl = "{url}";
-    '''
+    fmtAjaxTargetJS = 'var ctxUrl = "{url}";'
 
     def __init__(self, html):
         self.db = {}
@@ -106,7 +104,7 @@ class AjaxWebComponent(WebComponent):
 jsAjaxUtilities = '''
 function ctxJoin(key, args) {
   var E = encodeURIComponent;
-  var r = [ctxUrl[key.split('-')[0]], "!x="+E(key)];
+  var r = [ctxUrl, "!x="+E(key)];
   if (args) for (var k in args) r.push(E(k)+"="+E(args[k]))
   return r.join("&")
 }
