@@ -259,7 +259,7 @@ class HtmlForm(HtmlTagBrush):
 
 class HtmlText(HtmlBaseBrush):
     def initBrush(self, args, kw):
-        self.text = ''.join(args)
+        self.text = u''.join(args)
 
     def copy(self):
         return self.new(self.text)

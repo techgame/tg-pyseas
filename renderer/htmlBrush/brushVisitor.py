@@ -10,6 +10,7 @@
 #~ Imports 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+import re
 import codecs
 try:
     from cStringIO import StringIO
@@ -42,32 +43,35 @@ forceQuoteMapping = dict.fromkeys(map(ord, forceQuoteChars), '-')
 def mustQuoteAttrValue(value):
     return bool(codecs.charmap_encode(value, 'ignore', forceQuoteMapping)[0])
 
-class entity_charmap_codec(dict):
-    def __missing__(self, char): 
-        return self.get(unichr(char), char)
-    def copy(self):
-        return self.__class__(dict.copy(self))
-    def encode(self, input, final=False):
-        return codecs.charmap_encode(input, 'strict', self)[0]
-    def decode(self, input, final=False):
-        return codecs.charmap_decode(input, 'strict', self)[0]
+class EntityCodec(dict):
+    def compile(self):
+        rx = u'|'.join(re.escape(k) for k in self.iterkeys())
+        self.regex = re.compile(rx)
+        return self.regex
 
-_cdataCodec = entity_charmap_codec({"&":"&amp;", "<":"&lt;", ">":"&gt;"})
-_attrCodec = entity_charmap_codec({"'":"&apos;", '"':"&quot;"})
+    def encode(self, input, final=False):
+        def fn(m): return self[m.group(0)]
+        return self.regex.sub(fn, input)
+
+_cdataCodec = EntityCodec({"&":"&amp;", "<":"&lt;", ">":"&gt;"})
+_cdataCodec.compile()
+
+_attrCodec = EntityCodec({"'":"&apos;", '"':"&quot;"})
 _attrCodec.update(_cdataCodec)
+_attrCodec.compile()
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 def openHtmlIO(host, encoding='utf-8', errors='xmlcharrefreplace'):
     if encoding is None: encoding = 'utf-8'
     if errors is None: errors = 'xmlcharrefreplace'
 
-    fh = codecs.EncodedFile(StringIO(), encoding, encoding, errors)
-    def getResult():
-        return fh.getvalue()
-    def encode(s, encoding=encoding, errors=errors):
-        return s.encode(encoding, errors)
-
+    ci = codecs.lookup(encoding)
+    fh = ci.streamwriter(StringIO(), errors)
     host.write = fh.write
-    host.getResult = getResult
+    host.getResult = fh.getvalue
+    def encode(s, errors=errors):
+        return ci.encode(s, errors)[0]
     host.encode = encode
     return fh
 
