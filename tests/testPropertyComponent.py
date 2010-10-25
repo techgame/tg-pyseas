@@ -81,7 +81,8 @@ def testComponentSlotFunctionTarget():
 
     c.call(c.renderFunction)
     assert c.render() == "function"
+    assert c.render() == "function"
 
-    c.answer()
+    c.target.answer()
     assert c.render() == "body method"
 

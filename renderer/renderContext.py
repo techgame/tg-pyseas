@@ -37,7 +37,7 @@ class WebRenderContext(object):
 
     pageHeader = None
     def _initContext(self, request):
-        self.shared = self.cbRegistry.shared
+        self.shared = getattr(self.cbRegistry, 'shared', {})
         self.db = {}
         self.request = request
         self.selected = set()

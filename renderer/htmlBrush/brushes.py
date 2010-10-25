@@ -270,7 +270,7 @@ class HtmlText(HtmlBaseBrush):
     escape = True
     def initBrush(self, args, kw):
         self.escape = kw.pop('escape', self.escape)
-        self.text = ''.join(args)
+        self.text = u''.join(args)
 
     def copy(self):
         return self.new(self.text, escape=self.escape)
