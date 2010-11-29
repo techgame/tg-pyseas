@@ -22,6 +22,11 @@ from .sessionComponent import sessionProxy, sessionFactory
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class FlaskWebViewContextBase(WebViewContextBase):
+    #~ Dispatch request composed method ~~~~~~~~~~~~~~~~~
+
+    def _requestFromContext(self):
+        return flask.request
+
     #~ Render dispatch extension points ~~~~~~~~~~~~~~~~~
 
     def _renderCallbackMissing(self, request):

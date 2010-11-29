@@ -36,15 +36,21 @@ class RequestContextDispatch(object):
 
     #~ Dispatch request composed method ~~~~~~~~~~~~~~~~~
 
-    def dispatchRequest(self, request, **nsCtx):
+    def dispatchRequest(self, request=None, **nsCtx):
         try:
             return self._performDispatch(request, nsCtx)
         except Exception:
             traceback.print_exc()
             raise
 
+    def _requestFromContext(self):
+        raise NotImplementedError('Subclass Responsibility: %r' % (self,))
+
     def _performDispatch(self, request, nsCtx):
         """Performs component dispatch, including registered callbacks"""
+        if request is None:
+            request = self._requestFromContext()
+
         # find if there is a registered callback for the request arguments
         reqCallback, cbRegistry = self.findCallbackAndRegistry(request, False)
 
