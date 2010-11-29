@@ -7,6 +7,12 @@
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~ Imports 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+import traceback
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Component Request Context Dispatch Composed Object
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -31,7 +37,11 @@ class RequestContextDispatch(object):
     #~ Dispatch request composed method ~~~~~~~~~~~~~~~~~
 
     def dispatchRequest(self, request, **nsCtx):
-        return self._performDispatch(request, nsCtx)
+        try:
+            return self._performDispatch(request, nsCtx)
+        except Exception:
+            traceback.print_exc()
+            raise
 
     def _performDispatch(self, request, nsCtx):
         """Performs component dispatch, including registered callbacks"""
