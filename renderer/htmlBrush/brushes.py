@@ -261,6 +261,9 @@ class HtmlScript(HtmlTagBrush):
         unicode: (lambda item,bctx: bctx.text(item, escape=False)),
         })
 
+class HtmlImage(HtmlTagBrush):
+    _callbackUrlKey = 'src'
+
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Text Base Brushes
@@ -388,6 +391,7 @@ htmlTagBrushMap = dict((tag, HtmlTagBrush) for tag in html5Tags)
 htmlTagBrushMap.update(
     form = HtmlForm,
     script = HtmlScript,
+    img = HtmlImage,
     )
 
 html5HeadTags = """

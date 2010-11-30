@@ -101,6 +101,7 @@ class HtmlRenderer(BaseRenderer, HtmlBrushContextApiMixin):
             return self.addItem(item)
 
     def __call__(self, tag, *args, **kw):
+        if tag is None: return
         if hasattr(tag, 'isWebComponent'):
             return self.render(tag)
         if callable(tag):
