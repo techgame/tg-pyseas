@@ -24,7 +24,10 @@ from .renderer.htmlBrush import htmlHeadTagBrushMap
 
 class WebPageComponent(WebListPartsMixin, WebComponentBase):
     def __init__(self, title=None, *parts):
-        parts = list(parts)
+        if len(parts)==1 and not getattr(parts[0], 'isWebComponent', bool)():
+            parts = list(parts[0])
+        else: parts = list(parts)
+
         if getattr(title, 'isWebComponent', bool)():
             parts.insert(0, title)
             title = None

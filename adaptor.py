@@ -53,3 +53,17 @@ def registerAdaptor(adaptor, keys, adaptorMap=componentAdaptorMap):
     adaptorMap.update(res)
     return res
 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+class AdaptableMixin(object):
+    _itemAdaptorMap = componentAdaptorMap
+
+    @classmethod
+    def registerAsAdaptorFor(klass, *keys):
+        res = dict.fromkeys(keys, klass)
+        klass._itemAdaptorMap.update(res)
+        return res
+
+    def itemAsComponent(self, item, default=NotImplemented):
+        return adaptItemAsComponent(item, default, self._itemAdaptorMap)
+

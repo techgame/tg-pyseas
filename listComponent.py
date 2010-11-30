@@ -10,6 +10,7 @@
 #~ Imports 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+from .adaptor import AdaptableMixin
 from .component import WebComponent
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -31,14 +32,13 @@ class WebPartsMixin(object):
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-class WebListPartsMixin(WebPartsMixin):
+class WebListPartsMixin(WebPartsMixin, AdaptableMixin):
     def __len__(self):
         return len(self.parts)
     def __iter__(self):
         return iter(self.parts)
     def insert(self, idx, item):
-        if not item.isWebComponent():
-            raise ValueError("Expected an object implementing web component protocol")
+        item = self.itemAsComponent(item)
         return self.parts.insert(idx, item)
     def remove(self, item):
         return self.parts.remove(item)
@@ -48,8 +48,7 @@ class WebListPartsMixin(WebPartsMixin):
         return self.parts.sort(*args, **kw)
 
     def add(self, item):
-        if not item.isWebComponent():
-            raise ValueError("Expected an object implementing web component protocol")
+        item = self.itemAsComponent(item)
         self.parts.append(item)
         return item
     append = add

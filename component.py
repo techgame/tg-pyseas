@@ -14,7 +14,7 @@
 from functools import partial
 from contextlib import contextmanager
 
-from .adaptor import componentAdaptorMap, adaptItemAsComponent
+from .adaptor import AdaptableMixin
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Definitions 
@@ -70,7 +70,7 @@ class AnswerableMixin(object):
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-class WebComponent(WebComponentBase, AnswerableMixin):
+class WebComponent(WebComponentBase, AnswerableMixin, AdaptableMixin):
     def renderOn(self, rctx):
         target = self.target
         if target is not None:
@@ -144,19 +144,6 @@ class WebComponent(WebComponentBase, AnswerableMixin):
     answered = NotImplemented
     def onAnswer(self, value=None):
         self.answered = value
-
-    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-    _itemAdaptorMap = componentAdaptorMap
-
-    @classmethod
-    def registerAsAdaptorFor(klass, *keys):
-        res = dict.fromkeys(keys, klass)
-        klass._itemAdaptorMap.update(res)
-        return res
-
-    def itemAsComponent(self, item, default=NotImplemented):
-        return adaptItemAsComponent(item, default, self._itemAdaptorMap)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
