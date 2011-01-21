@@ -33,3 +33,26 @@ def testHtmlUtfEncoding():
     r = html.result()
     assert r == '<div><p>Universit\xc3\xa9 du Qu\xc3\xa9bec &amp; Ontario</p></div>'
 
+def testHtmlUtfUrl():
+    wrc = WebRenderContext(None, None)
+    html = wrc.createRenderer()
+
+    url = html.url('', host=u'Université du Québec & Ontario')
+    assert url == '?host=Universit%C3%A9%20du%20Qu%C3%A9bec%20%26%20Ontario'
+
+def testFlaskRoundTrip():
+    from flask import Flask, request, jsonify
+    app = Flask('app')
+    @app.route('/')
+    def test():
+        host = request.args['host']
+        assert host == u'Université du Québec & Ontario'
+        return jsonify(host=host)
+    app = app.test_client()
+
+    wrc = WebRenderContext(None, None)
+    html = wrc.createRenderer()
+
+    url = html.url('', host=u'Université du Québec & Ontario')
+    rv = app.get(url)
+

@@ -115,17 +115,27 @@ class PaginatorBase(WebComponent):
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class ListPaginator(PaginatorBase):
+    _refreshFn = None
     def __init__(self, items, ItemView=None, **kw):
-        self.items = items
+        if callable(items):
+            self._refreshFn = items
+            self._checkFn = kw.pop('checkFn')
+            self.items = items()
+        else:
+            self.items = items
         super(ListPaginator, self).__init__(ItemView, **kw)
 
     def itemCount(self):
         return len(self.items)
 
     def itemSelection(self, p0, p1):
+        if self._refreshFn is not None and self._checkFn():
+            self.items = self._refreshFn()
+            self.clearCache()
         items = self.items
         if self.reverse:
             items = items[::-1]
+        
         return items[p0:p1]
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

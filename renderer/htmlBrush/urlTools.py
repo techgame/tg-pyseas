@@ -21,7 +21,14 @@ class UrlToolsMixin(object):
 
     def newUrl(self, _url_, *args, **kw):
         if args: kw = dict(*args, **kw)
-        query = '&'.join(quote(str(k))+'='+quote(str(v)) for k,v in kw.iteritems())
+        def quoteKV(k,v):
+            if not isinstance(k, str): 
+                k = unicode(k).encode('utf-8')
+            if not isinstance(v, str): 
+                v = unicode(v).encode('utf-8')
+            return quote(k)+'='+quote(v)
+
+        query = '&'.join(quoteKV(k,v) for k,v in kw.iteritems())
         return self.newUrlQuery(_url_, query)
     url = newUrl
 
