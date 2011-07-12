@@ -25,7 +25,7 @@ class WebComponentBase(object):
         return True
 
     def render(self, outputKey='html', cbRegistry=None):
-        from pyseas.renderer import WebRenderContext
+        from .renderer import WebRenderContext
         rctx = WebRenderContext(cbRegistry, outputKey)
         return rctx.render(self)
 
