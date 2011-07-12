@@ -14,7 +14,7 @@ from functools import partial, update_wrapper
 
 import flask
 
-from pyseas.engine import WebViewContextBase
+from TG.pyseas.engine import WebViewContextBase
 from .sessionComponent import sessionProxy, sessionFactory
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

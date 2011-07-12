@@ -53,8 +53,7 @@ class WebPageComponent(WebListPartsMixin, WebComponentBase):
                 head = pageHeader.startRenderHeader(html)
 
                 self.renderPageHeaderOn(pageHeader)
-                with html.body():
-                    self.renderPageBodyOn(html)
+                self.renderPageBodyOn(html)
 
                 # render the header after the body, in case 
                 # another component modified it from html context
@@ -63,7 +62,8 @@ class WebPageComponent(WebListPartsMixin, WebComponentBase):
     def renderPageHeaderOn(self, pageHeader):
         pass
     def renderPageBodyOn(self, html):
-        self.renderParts(html)
+        with html.body():
+            self.renderParts(html)
 
     @contextmanager
     def renderCtxOn(self, v, outer):
@@ -142,6 +142,9 @@ class WebPageHeader(HtmlBrushContextApiMixin):
         """Links a stylesheet to the page header"""
         return self.link(href, rel, 'text/css')
     css = stylesheet
+
+    def meta(self, *args, **kw):
+        return self['meta'](*args, **kw)
 
     def script(self, *args, **kw):
         kw.setdefault('type', "text/javascript")

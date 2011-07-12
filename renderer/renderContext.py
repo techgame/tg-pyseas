@@ -77,6 +77,6 @@ class WebRenderContext(object):
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     def createCallbackRegistry(self):
-        from pyseas.engine import WebCallbackRegistry
+        from TG.pyseas.engine import WebCallbackRegistry
         return WebCallbackRegistry()
 

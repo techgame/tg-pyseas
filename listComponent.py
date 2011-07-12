@@ -56,6 +56,8 @@ class WebListPartsMixin(WebPartsMixin):
     def extend(self, iterable):
         for item in iterable:
             self.add(item)
+    def clear(self):
+        self.parts[:] = []
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

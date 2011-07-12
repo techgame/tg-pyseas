@@ -10,7 +10,7 @@
 #~ Imports 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-from pyseas.renderer import WebRenderContext
+from ..renderer import WebRenderContext
 from .callbackRegistry import WebCallbackRegistry
 from .contextDispatch import RequestContextDispatch
 

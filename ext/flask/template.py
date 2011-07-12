@@ -12,7 +12,7 @@
 
 import flask
 
-from pyseas import WebComponent
+from TG.pyseas import WebComponent
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Definitions 

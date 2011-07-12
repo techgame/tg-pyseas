@@ -15,7 +15,7 @@ import itertools
 import wtforms
 from wtforms import fields, widgets, validators
 
-from pyseas import WebComponent
+from TG.pyseas import WebComponent
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Definitions 

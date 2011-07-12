@@ -13,8 +13,8 @@
 import functools
 import flask
 
-from pyseas.component import WebComponent
-from pyseas import sessionComponent as base
+from TG.pyseas.component import WebComponent
+from TG.pyseas import sessionComponent as base
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Definitions 
