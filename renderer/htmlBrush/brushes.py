@@ -269,6 +269,16 @@ class HtmlImage(HtmlTagBrush):
 #~ Text Base Brushes
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+class HtmlComment(HtmlBaseBrush):
+    def initBrush(self, args, kw):
+        self.text = u''.join(args)
+
+    def copy(self):
+        return self.new(self.text, escape=self.escape)
+
+    def acceptHtmlBrushVisitor(self, htmlVis):
+        htmlVis.comment(self.text)
+
 class HtmlText(HtmlBaseBrush):
     escape = True
     def initBrush(self, args, kw):
@@ -423,6 +433,7 @@ htmlUtilityTagBrushMap = dict(
     text = HtmlText,
     space = HtmlSpace,
     entity = HtmlEntity,
+    comment = HtmlComment,
 
     raw = HtmlRaw,)
 

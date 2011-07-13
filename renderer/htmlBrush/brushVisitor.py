@@ -207,7 +207,7 @@ class HtmlBrushVisitor(object):
 
         if '--' in item:
             raise ValueError("Comment contains '--'")
-        self.write('<!-- '+ comment + ' -->')
+        self.write('<!-- '+ item + ' -->')
 
     def openComment(self):
         self.write('<!-- ')
